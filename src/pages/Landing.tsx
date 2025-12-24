@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { Header } from '@/components/Header';
-import { QuestCard } from '@/components/QuestCard';
+import { GameQuestCard } from '@/components/GameQuestCard';
 import { JoinQuestModal } from '@/components/JoinQuestModal';
 import { DEMO_QUESTS } from '@/lib/questConfig';
-import { Sparkles, Wallet, Clock, TrendingUp, Shield } from 'lucide-react';
+import { Play, Scroll, Gamepad2, Shield, Zap, Trophy } from 'lucide-react';
 import type { Quest } from '@/lib/contracts';
 
 export default function Landing() {
   const { isConnected } = useAccount();
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const questSectionRef = useRef<HTMLDivElement>(null);
 
-  // Use demo quests for now (replace with contract call when connected)
   const quests = DEMO_QUESTS;
 
   const handleJoinQuest = (quest: Quest) => {
@@ -26,178 +28,239 @@ export default function Landing() {
     setSelectedQuest(null);
   };
 
-  const handleSuccess = () => {
-    // Refresh quests/user state
-    console.log('Quest joined successfully!');
+  const handleSuccess = (gameType: 'chess' | 'tower_defense') => {
+    setIsModalOpen(false);
+    setSelectedQuest(null);
+    // Navigate to the game
+    navigate(`/game/${gameType}`);
   };
 
-  const steps = [
-    {
-      icon: Wallet,
-      title: 'Connect Wallet',
-      description: 'Connect your wallet on Mantle network to begin your adventure.',
-    },
-    {
-      icon: Clock,
-      title: 'Choose a Quest',
-      description: 'Select a quest that matches your risk appetite and stake your tokens.',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Claim Rewards',
-      description: 'Return after the quest duration to claim your yield and XP rewards.',
-    },
-  ];
+  const scrollToQuests = () => {
+    questSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute top-40 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+      {/* Hero Section with Video Background */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Video Background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="video-hero"
+        >
+          <source src="/videos/hero-video.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Overlay */}
+        <div className="hero-overlay" />
 
-        <div className="container mx-auto px-4 py-20 md:py-32 relative">
+        {/* Content */}
+        <div className="relative z-10 container mx-auto px-4 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl mx-auto text-center"
+            transition={{ duration: 0.8, delay: 0.2 }}
           >
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', bounce: 0.5, delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30 mb-6"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-foreground/10 border border-foreground/20 mb-8"
             >
-              <Shield className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Powered by Mantle</span>
+              <Shield className="w-4 h-4 text-foreground" />
+              <span className="text-sm font-medium text-foreground">Powered by Mantle Network</span>
             </motion.div>
 
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="gradient-text glow-text">Yield Quest RPG</span>
-              <br />
-              <span className="text-foreground">on Mantle</span>
+            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-foreground">
+              YIELD QUEST
+              <span className="block text-3xl md:text-4xl lg:text-5xl mt-2 text-foreground/80">
+                RPG ON MANTLE
+              </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Send your yield-bearing tokens on epic quests. Earn real yield + RPG rewards. 
-              Level up your adventure and climb the leaderboard.
+            <p className="text-lg md:text-xl text-foreground/70 mb-12 max-w-2xl mx-auto">
+              Stake your tokens. Play epic games. Earn real yield and XP rewards.
             </p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-wrap items-center justify-center gap-4"
+            {/* Play Button */}
+            <motion.button
+              onClick={scrollToQuests}
+              className="play-button mx-auto"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-sm">Earn XP & Level Up</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border">
-                <TrendingUp className="w-4 h-4 text-accent" />
-                <span className="text-sm">Real Yield Rewards</span>
-              </div>
-            </motion.div>
+              <Play className="w-10 h-10 text-background ml-1" fill="currentColor" />
+            </motion.button>
+            
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-foreground/50 mt-6 text-sm uppercase tracking-widest"
+            >
+              Click to Play
+            </motion.p>
+          </motion.div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-6 h-10 rounded-full border-2 border-foreground/30 flex items-start justify-center p-2"
+          >
+            <motion.div className="w-1.5 h-1.5 rounded-full bg-foreground" />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-display text-4xl md:text-5xl font-bold mb-4 text-foreground">
+              STAKE. PLAY. EARN.
+            </h2>
+            <p className="text-foreground/60 max-w-xl mx-auto">
+              A new era of GameFi where your staking rewards unlock epic gaming experiences.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                icon: Gamepad2,
+                title: 'Play Games',
+                description: 'Chess strategy and Tower Defense games with progressive difficulty.',
+              },
+              {
+                icon: Zap,
+                title: 'Earn XP',
+                description: 'Level up your character through gameplay achievements and challenges.',
+              },
+              {
+                icon: Trophy,
+                title: 'Win Rewards',
+                description: 'Stake tokens to unlock games and earn yield while you play.',
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center p-8 rounded-2xl bg-card border border-border hover:border-foreground/20 transition-all duration-300"
+              >
+                <div className="w-16 h-16 mx-auto mb-6 rounded-xl bg-foreground/10 flex items-center justify-center">
+                  <feature.icon className="w-8 h-8 text-foreground" />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
+                <p className="text-foreground/60 text-sm">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Available Quests Section */}
+      <section ref={questSectionRef} className="py-20 bg-background" id="quests">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-foreground/5 border border-foreground/10 mb-6">
+              <Scroll className="w-4 h-4 text-foreground" />
+              <span className="text-sm font-medium text-foreground">Available Quests</span>
+            </div>
+            <h2 className="font-display text-4xl md:text-5xl font-bold mb-4 text-foreground">
+              CHOOSE YOUR GAME
+            </h2>
+            <p className="text-foreground/60 max-w-xl mx-auto">
+              Each quest unlocks a unique game. Stake tokens, play to earn XP, and climb the leaderboard.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {quests.map((quest, index) => (
+              <motion.div
+                key={quest.id.toString()}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+              >
+                <GameQuestCard
+                  quest={quest}
+                  onJoinQuest={handleJoinQuest}
+                  isConnected={isConnected}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {!isConnected && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center text-foreground/50 mt-8"
+            >
+              Connect your wallet to join quests
+            </motion.p>
+          )}
+        </div>
+      </section>
+
+      {/* Learn More Section */}
+      <section className="py-20 bg-card border-t border-border">
+        <div className="container mx-auto px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              LEARN MANTLE NETWORK
+            </h2>
+            <p className="text-foreground/60 mb-8 max-w-xl mx-auto">
+              Master game strategies while learning about Mantle blockchain technology.
+            </p>
+            <a
+              href="https://docs.mantle.xyz/network"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background font-semibold rounded-lg hover:bg-foreground/90 transition-colors"
+            >
+              View Documentation
+            </a>
           </motion.div>
         </div>
       </section>
 
-      {/* Quest Grid */}
-      <section className="container mx-auto px-4 py-12 md:py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-            Available <span className="gradient-text">Quests</span>
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Choose your adventure. Each quest offers different durations, minimum stakes, and rewards.
-          </p>
-        </motion.div>
-
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {quests.map((quest, index) => (
-            <motion.div
-              key={quest.id.toString()}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <QuestCard
-                quest={quest}
-                onJoinQuest={handleJoinQuest}
-                isConnected={isConnected}
-              />
-            </motion.div>
-          ))}
-        </div>
-
-        {!isConnected && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center text-muted-foreground mt-8"
-          >
-            Connect your wallet to join quests
-          </motion.p>
-        )}
-      </section>
-
-      {/* How it Works */}
-      <section className="container mx-auto px-4 py-12 md:py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-            How it <span className="gradient-text">Works</span>
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Three simple steps to start your yield-generating adventure.
-          </p>
-        </motion.div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.15 }}
-              className="relative text-center p-6"
-            >
-              {/* Step number */}
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-primary-foreground font-bold text-sm">
-                {index + 1}
-              </div>
-
-              {/* Icon */}
-              <div className="w-16 h-16 mx-auto mb-4 mt-4 rounded-2xl bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
-                <step.icon className="w-8 h-8 text-primary" />
-              </div>
-
-              <h3 className="font-display text-xl font-semibold mb-2">{step.title}</h3>
-              <p className="text-sm text-muted-foreground">{step.description}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Yield Quest RPG on Mantle • Built for DeFi adventurers</p>
+      <footer className="border-t border-border py-8 bg-background">
+        <div className="container mx-auto px-4 text-center text-sm text-foreground/50">
+          <p>Yield Quest RPG on Mantle • Built for DeFi Gamers</p>
         </div>
       </footer>
 
@@ -206,7 +269,7 @@ export default function Landing() {
         quest={selectedQuest}
         isOpen={isModalOpen}
         onClose={handleModalClose}
-        onSuccess={handleSuccess}
+        onSuccess={() => handleSuccess(selectedQuest?.gameType || 'chess')}
       />
     </div>
   );

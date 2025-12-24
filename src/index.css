@@ -2,41 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
-    /* Dark fantasy theme */
-    --background: 250 30% 6%;
-    --foreground: 45 20% 95%;
+    /* Pure black gaming theme */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 250 25% 10%;
-    --card-foreground: 45 20% 95%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 250 25% 8%;
-    --popover-foreground: 45 20% 95%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
 
     /* Gold/Amber primary for XP and rewards */
     --primary: 45 90% 55%;
-    --primary-foreground: 250 30% 6%;
+    --primary-foreground: 0 0% 0%;
 
     /* Deep purple secondary */
     --secondary: 270 50% 25%;
-    --secondary-foreground: 45 20% 95%;
+    --secondary-foreground: 0 0% 100%;
 
     /* Muted mystical */
-    --muted: 250 20% 18%;
-    --muted-foreground: 250 15% 60%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
 
     /* Teal accent for active states */
     --accent: 175 70% 45%;
-    --accent-foreground: 250 30% 6%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 70% 50%;
-    --destructive-foreground: 45 20% 95%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 270 30% 20%;
-    --input: 270 30% 20%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 45 90% 55%;
 
     --radius: 0.75rem;
@@ -49,48 +49,48 @@
     --mantle-blue: 200 80% 50%;
 
     /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(270 50% 15%) 0%, hsl(250 30% 6%) 50%, hsl(200 40% 10%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(270 30% 15%) 0%, hsl(250 25% 10%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(0 0% 3%) 50%, hsl(0 0% 0%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 8%) 0%, hsl(0 0% 3%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(45 90% 55%) 0%, hsl(35 80% 45%) 100%);
-    --gradient-quest: linear-gradient(180deg, hsl(270 40% 20%) 0%, hsl(250 30% 12%) 100%);
+    --gradient-quest: linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 5%) 100%);
     --gradient-progress: linear-gradient(90deg, hsl(175 70% 45%) 0%, hsl(45 90% 55%) 100%);
 
     /* Shadows */
     --shadow-glow: 0 0 40px hsl(270 80% 60% / 0.3);
     --shadow-gold: 0 0 30px hsl(45 90% 55% / 0.4);
-    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.8);
 
     /* Sidebar (keeping for compatibility) */
-    --sidebar-background: 250 30% 8%;
-    --sidebar-foreground: 45 20% 95%;
+    --sidebar-background: 0 0% 3%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 45 90% 55%;
-    --sidebar-primary-foreground: 250 30% 6%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 270 50% 25%;
-    --sidebar-accent-foreground: 45 20% 95%;
-    --sidebar-border: 270 30% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 15%;
     --sidebar-ring: 45 90% 55%;
   }
 
   .dark {
     /* Same as root - dark theme by default */
-    --background: 250 30% 6%;
-    --foreground: 45 20% 95%;
-    --card: 250 25% 10%;
-    --card-foreground: 45 20% 95%;
-    --popover: 250 25% 8%;
-    --popover-foreground: 45 20% 95%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
     --primary: 45 90% 55%;
-    --primary-foreground: 250 30% 6%;
+    --primary-foreground: 0 0% 0%;
     --secondary: 270 50% 25%;
-    --secondary-foreground: 45 20% 95%;
-    --muted: 250 20% 18%;
-    --muted-foreground: 250 15% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
     --accent: 175 70% 45%;
-    --accent-foreground: 250 30% 6%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 70% 50%;
-    --destructive-foreground: 45 20% 95%;
-    --border: 270 30% 20%;
-    --input: 270 30% 20%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 45 90% 55%;
   }
 }
@@ -102,8 +102,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background: var(--gradient-hero);
-    background-attachment: fixed;
+    background: hsl(0 0% 0%);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -156,6 +155,48 @@
   .pulse-glow {
     animation: pulseGlow 2s ease-in-out infinite;
   }
+
+  .play-button {
+    @apply relative flex items-center justify-center w-24 h-24 rounded-full bg-foreground/90 cursor-pointer transition-all duration-300;
+    box-shadow: 0 0 60px hsl(0 0% 100% / 0.3);
+  }
+
+  .play-button:hover {
+    @apply scale-110;
+    box-shadow: 0 0 80px hsl(0 0% 100% / 0.5);
+  }
+
+  .play-button::before {
+    content: '';
+    @apply absolute inset-0 rounded-full;
+    animation: playPulse 2s ease-in-out infinite;
+  }
+
+  .game-card {
+    @apply relative overflow-hidden rounded-2xl border border-border bg-card transition-all duration-500;
+  }
+
+  .game-card:hover {
+    @apply border-foreground/30;
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 60px hsl(0 0% 0% / 0.8);
+  }
+
+  .chess-square-light {
+    @apply bg-foreground/90;
+  }
+
+  .chess-square-dark {
+    @apply bg-muted;
+  }
+
+  .tower-slot {
+    @apply relative w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer transition-all duration-200;
+  }
+
+  .tower-slot:hover {
+    @apply border-primary bg-primary/10;
+  }
 }
 
 @layer utilities {
@@ -184,6 +225,15 @@
   }
 }
 
+@keyframes playPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(0 0% 100% / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 20px hsl(0 0% 100% / 0);
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -202,4 +252,19 @@
   );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+/* Video background styles */
+.video-hero {
+  @apply absolute inset-0 w-full h-full object-cover;
+  filter: brightness(0.4);
+}
+
+.hero-overlay {
+  @apply absolute inset-0;
+  background: linear-gradient(180deg, 
+    hsl(0 0% 0% / 0.6) 0%, 
+    hsl(0 0% 0% / 0.3) 50%, 
+    hsl(0 0% 0% / 0.9) 100%
+  );
 }

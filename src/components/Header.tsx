@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { WalletButton, NetworkBanner } from './WalletButton';
 import { motion } from 'framer-motion';
-import { Sparkles, Map, Scroll } from 'lucide-react';
+import { Gamepad2, Map, Scroll, BookOpen } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
@@ -17,22 +17,22 @@ export function Header() {
       <motion.header 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border/30 bg-background/80 backdrop-blur-xl"
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
+            <Link to="/" className="flex items-center gap-3 group">
               <motion.div 
                 whileHover={{ rotate: 180 }}
                 transition={{ duration: 0.5 }}
-                className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center shadow-lg shadow-primary/25"
+                className="w-10 h-10 rounded-lg bg-foreground flex items-center justify-center"
               >
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
+                <Gamepad2 className="w-6 h-6 text-background" />
               </motion.div>
               <div className="hidden sm:block">
-                <h1 className="font-display text-lg font-bold gradient-text">Yield Quest</h1>
-                <p className="text-xs text-muted-foreground -mt-1">RPG on Mantle</p>
+                <h1 className="font-display text-lg font-bold text-foreground">YIELD QUEST</h1>
+                <p className="text-xs text-foreground/50 -mt-0.5">RPG ON MANTLE</p>
               </div>
             </Link>
 
@@ -48,22 +48,24 @@ export function Header() {
                     to={item.path}
                     className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
                       isActive 
-                        ? 'text-primary' 
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        ? 'text-foreground bg-foreground/10' 
+                        : 'text-foreground/50 hover:text-foreground hover:bg-foreground/5'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                     {item.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute inset-0 bg-primary/10 border border-primary/30 rounded-lg -z-10"
-                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
                   </Link>
                 );
               })}
+              <a
+                href="https://docs.mantle.xyz/network"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
+              >
+                <BookOpen className="w-4 h-4" />
+                Learn
+              </a>
             </nav>
 
             {/* Wallet */}
@@ -82,8 +84,8 @@ export function Header() {
                   to={item.path}
                   className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
                     isActive 
-                      ? 'text-primary bg-primary/10 border border-primary/30' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      ? 'text-foreground bg-foreground/10 border border-foreground/20' 
+                      : 'text-foreground/50 hover:text-foreground hover:bg-foreground/5'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
