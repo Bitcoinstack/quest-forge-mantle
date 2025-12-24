@@ -30,6 +30,8 @@ export interface Quest {
   minDuration: bigint;
   minAmount: bigint;
   stakingToken: string;
+  gameType?: 'chess' | 'tower_defense';
+  level?: number;
 }
 
 export interface UserQuest {

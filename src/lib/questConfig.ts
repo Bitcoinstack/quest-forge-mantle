@@ -10,49 +10,35 @@ export interface QuestConfig {
   difficulty: 'Novice' | 'Adept' | 'Veteran' | 'Legendary';
   icon: string;
   color: string;
+  gameType: 'chess' | 'tower_defense';
+  level: number;
 }
 
 // Static quest configurations matching expected contract quests
 export const QUEST_CONFIGS: Record<number, QuestConfig> = {
   1: {
     id: 1,
-    name: 'Novice Expedition',
-    description: 'A short quest for cautious adventurers',
-    flavorText: 'Begin your journey with a simple expedition. Low risk, steady rewards.',
-    estimatedAPR: 5,
-    difficulty: 'Novice',
-    icon: '⚔️',
-    color: 'from-emerald-500 to-teal-600',
+    name: 'Chess Strategy Quest',
+    description: 'Master the ancient game of kings',
+    flavorText: 'Prove your strategic prowess on the checkered battlefield. Win games to earn XP and rewards.',
+    estimatedAPR: 8,
+    difficulty: 'Adept',
+    icon: '♟️',
+    color: 'from-slate-600 to-slate-800',
+    gameType: 'chess',
+    level: 1,
   },
   2: {
     id: 2,
-    name: 'Adept Journey',
-    description: 'For those seeking greater challenges',
-    flavorText: 'A month-long adventure awaits. Higher stakes, better treasures.',
-    estimatedAPR: 8,
-    difficulty: 'Adept',
-    icon: '🗡️',
-    color: 'from-blue-500 to-indigo-600',
-  },
-  3: {
-    id: 3,
-    name: 'Veteran Campaign',
-    description: 'Extended expedition for seasoned warriors',
-    flavorText: 'Two months of relentless questing. Glory awaits the persistent.',
+    name: 'Tower Defense Quest',
+    description: 'Build and defend your kingdom',
+    flavorText: 'Construct mighty towers to repel waves of enemies. Upgrade and unlock new strategies.',
     estimatedAPR: 12,
     difficulty: 'Veteran',
-    icon: '🛡️',
-    color: 'from-purple-500 to-violet-600',
-  },
-  4: {
-    id: 4,
-    name: 'Legendary Voyage',
-    description: 'The ultimate test of dedication',
-    flavorText: 'Three months in the deepest dungeons. Only legends emerge.',
-    estimatedAPR: 18,
-    difficulty: 'Legendary',
-    icon: '👑',
-    color: 'from-amber-500 to-orange-600',
+    icon: '🏰',
+    color: 'from-emerald-600 to-emerald-800',
+    gameType: 'tower_defense',
+    level: 1,
   },
 };
 
@@ -67,6 +53,8 @@ export function getQuestConfig(questId: number): QuestConfig {
     difficulty: 'Novice',
     icon: '❓',
     color: 'from-gray-500 to-gray-600',
+    gameType: 'chess',
+    level: 1,
   };
 }
 
@@ -117,30 +105,20 @@ export function calculateEstimatedYield(
 export const DEMO_QUESTS = [
   {
     id: 1n,
-    name: 'Novice Expedition',
+    name: 'Chess Strategy Quest',
     minDuration: 604800n, // 7 days
     minAmount: 100n * 10n ** 18n, // 100 tokens
     stakingToken: '0x0000000000000000000000000000000000000001',
+    gameType: 'chess' as const,
+    level: 1,
   },
   {
     id: 2n,
-    name: 'Adept Journey',
-    minDuration: 2592000n, // 30 days
-    minAmount: 500n * 10n ** 18n, // 500 tokens
+    name: 'Tower Defense Quest',
+    minDuration: 1209600n, // 14 days
+    minAmount: 250n * 10n ** 18n, // 250 tokens
     stakingToken: '0x0000000000000000000000000000000000000001',
-  },
-  {
-    id: 3n,
-    name: 'Veteran Campaign',
-    minDuration: 5184000n, // 60 days
-    minAmount: 1000n * 10n ** 18n, // 1000 tokens
-    stakingToken: '0x0000000000000000000000000000000000000001',
-  },
-  {
-    id: 4n,
-    name: 'Legendary Voyage',
-    minDuration: 7776000n, // 90 days
-    minAmount: 5000n * 10n ** 18n, // 5000 tokens
-    stakingToken: '0x0000000000000000000000000000000000000001',
+    gameType: 'tower_defense' as const,
+    level: 1,
   },
 ];
