@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { WalletButton, NetworkBanner } from './WalletButton';
 import { motion } from 'framer-motion';
-import { Gamepad2, Map, Scroll, BookOpen } from 'lucide-react';
+import { Gamepad2, Map, Scroll } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
@@ -32,7 +32,7 @@ export function Header() {
               </motion.div>
               <div className="hidden sm:block">
                 <h1 className="font-display text-lg font-bold text-foreground">YIELD QUEST</h1>
-                <p className="text-xs text-foreground/50 -mt-0.5">RPG ON MANTLE</p>
+                <p className="text-xs text-foreground/50 -mt-0.5">ON MANTLE</p>
               </div>
             </Link>
 
@@ -57,15 +57,6 @@ export function Header() {
                   </Link>
                 );
               })}
-              <a
-                href="https://docs.mantle.xyz/network"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
-              >
-                <BookOpen className="w-4 h-4" />
-                Learn
-              </a>
             </nav>
 
             {/* Wallet */}

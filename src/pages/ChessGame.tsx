@@ -10,10 +10,10 @@ import {
   Trophy, 
   Star, 
   BookOpen, 
-  Target,
   RotateCcw,
   Crown,
-  Zap
+  Zap,
+  Lightbulb
 } from 'lucide-react';
 
 // Chess piece types
@@ -41,6 +41,18 @@ const PIECE_SYMBOLS: Record<PieceType, Record<PieceColor, string>> = {
   knight: { white: '♘', black: '♞' },
   pawn: { white: '♙', black: '♟' },
 };
+
+// Mantle tips to show on good moves
+const MANTLE_TIPS = [
+  "🎮 Mantle is a modular L2 scaling solution built on Ethereum!",
+  "💡 Mantle uses Optimistic Rollups for fast, low-cost transactions.",
+  "🔥 Build on Mantle: docs.mantle.xyz/network",
+  "⚡ Mantle achieves high throughput with data availability layers.",
+  "🌐 Mantle is EVM-compatible - deploy your Solidity contracts easily!",
+  "🔐 Mantle inherits Ethereum's security while reducing gas costs.",
+  "🚀 Learn to build dApps on Mantle: docs.mantle.xyz/developers",
+  "💰 Mantle uses $MNT as its native token for gas fees.",
+];
 
 // Initialize chess board
 const initializeBoard = (): Board => {
@@ -168,6 +180,14 @@ export default function ChessGame() {
   const [moveCount, setMoveCount] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [capturedPieces, setCapturedPieces] = useState<{ white: ChessPiece[], black: ChessPiece[] }>({ white: [], black: [] });
+  const [mantleTip, setMantleTip] = useState<string | null>(null);
+
+  // Show Mantle tip on capture or good move
+  const showMantleTip = () => {
+    const tip = MANTLE_TIPS[Math.floor(Math.random() * MANTLE_TIPS.length)];
+    setMantleTip(tip);
+    setTimeout(() => setMantleTip(null), 4000);
+  };
 
   // Calculate valid moves for selected piece
   useEffect(() => {
@@ -220,6 +240,11 @@ export default function ChessGame() {
         ...prev,
         [color]: [...prev[color], capturedPiece]
       }));
+      
+      // Show Mantle tip when player captures a piece
+      if (color === 'white') {
+        showMantleTip();
+      }
       
       // Check for king capture
       if (capturedPiece.type === 'king') {
@@ -318,6 +343,7 @@ export default function ChessGame() {
     setMoveCount(0);
     setCapturedPieces({ white: [], black: [] });
     setXpEarned(0);
+    setMantleTip(null);
   };
 
   return (
@@ -347,6 +373,21 @@ export default function ChessGame() {
 
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
+          {/* Mantle Tip Banner */}
+          <AnimatePresence>
+            {mantleTip && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-4 rounded-xl bg-foreground/10 border border-foreground/20 flex items-center gap-3"
+              >
+                <Lightbulb className="w-5 h-5 text-foreground shrink-0" />
+                <p className="text-sm text-foreground">{mantleTip}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Game Info */}
             <div className="space-y-6">
@@ -401,15 +442,6 @@ export default function ChessGame() {
                   <BookOpen className="w-4 h-4" />
                   Tutorial
                 </Button>
-                <a
-                  href="https://docs.mantle.xyz/network"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-2 px-4 border border-border rounded-lg text-foreground hover:bg-foreground/10 transition-colors"
-                >
-                  <Target className="w-4 h-4" />
-                  Learn Strategies
-                </a>
               </div>
             </div>
 
@@ -494,32 +526,33 @@ export default function ChessGame() {
             >
               {winner === 'player' ? (
                 <>
-                  <Trophy className="w-16 h-16 text-primary mx-auto mb-4" />
+                  <Trophy className="w-16 h-16 text-foreground mx-auto mb-4" />
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">VICTORY!</h2>
+                  <p className="text-foreground/60 mb-2">Excellent strategy!</p>
+                  <p className="text-sm text-foreground/50 mb-4">
+                    💡 Learn more about Mantle Network at docs.mantle.xyz
+                  </p>
                 </>
               ) : (
                 <>
                   <Crown className="w-16 h-16 text-foreground/50 mx-auto mb-4" />
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">DEFEAT</h2>
+                  <p className="text-foreground/60 mb-4">Better luck next time!</p>
                 </>
               )}
               
-              <p className="text-foreground/60 mb-6">
-                {winner === 'player' ? 'Excellent strategy!' : 'Better luck next time!'}
-              </p>
-              
               <div className="flex items-center justify-center gap-2 mb-6 px-4 py-3 bg-foreground/10 rounded-lg">
-                <Zap className="w-5 h-5 text-primary" />
+                <Zap className="w-5 h-5 text-foreground" />
                 <span className="font-bold text-foreground">+{xpEarned} XP Earned</span>
               </div>
               
               <div className="flex gap-3">
                 <Button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/journey')}
                   variant="outline"
                   className="flex-1 border-border text-foreground hover:bg-foreground/10"
                 >
-                  Exit
+                  View Journey
                 </Button>
                 <Button
                   onClick={resetGame}
@@ -554,22 +587,14 @@ export default function ChessGame() {
               
               <div className="space-y-4 text-sm text-foreground/80">
                 <p>Click on your pieces (white) to select them, then click on a highlighted square to move.</p>
-                <p><strong>Goal:</strong> Capture the opponent's King to win!</p>
-                <p><strong>XP Rewards:</strong></p>
+                <p><strong className="text-foreground">Goal:</strong> Capture the opponent's King to win!</p>
+                <p><strong className="text-foreground">XP Rewards:</strong></p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Win: 100 XP × difficulty multiplier</li>
                   <li>Loss: 25 XP × difficulty multiplier</li>
                 </ul>
                 <p className="text-foreground/60">
-                  Learn advanced strategies at{' '}
-                  <a 
-                    href="https://docs.mantle.xyz/network" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    Mantle Documentation
-                  </a>
+                  Capture pieces to learn about Mantle Network!
                 </p>
               </div>
               

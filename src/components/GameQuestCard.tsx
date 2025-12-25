@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { getQuestConfig, formatDuration } from '@/lib/questConfig';
-import { Clock, Coins, TrendingUp, Gamepad2, Castle, Crown } from 'lucide-react';
+import { getQuestConfig } from '@/lib/questConfig';
+import { Coins, TrendingUp, Gamepad2, Castle, Crown } from 'lucide-react';
 import type { Quest } from '@/lib/contracts';
 import chessHero from '@/assets/chess-hero.jpeg';
 import towerDefenseHero from '@/assets/tower-defense-hero.jpeg';
@@ -68,17 +68,12 @@ export function GameQuestCard({ quest, onJoinQuest, isConnected }: GameQuestCard
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 py-4 border-t border-border">
-          <div className="text-center">
-            <Clock className="w-5 h-5 text-foreground/50 mx-auto mb-1" />
-            <p className="text-xs text-foreground/50">Duration</p>
-            <p className="font-semibold text-foreground text-sm">{formatDuration(Number(quest.minDuration))}</p>
-          </div>
+        {/* Stats - Removed Duration */}
+        <div className="grid grid-cols-2 gap-4 py-4 border-t border-border">
           <div className="text-center">
             <Coins className="w-5 h-5 text-foreground/50 mx-auto mb-1" />
             <p className="text-xs text-foreground/50">Min Stake</p>
-            <p className="font-semibold text-foreground text-sm">{minAmount}</p>
+            <p className="font-semibold text-foreground text-sm">{minAmount} tokens</p>
           </div>
           <div className="text-center">
             <TrendingUp className="w-5 h-5 text-foreground/50 mx-auto mb-1" />

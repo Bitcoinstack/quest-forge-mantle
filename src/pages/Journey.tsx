@@ -1,93 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
+import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/Header';
 import { UserStats } from '@/components/UserStats';
-import { ActiveQuestCard, CompletedQuestCard } from '@/components/ActiveQuestCard';
 import { Leaderboard } from '@/components/Leaderboard';
-import { QuestCompleteModal } from '@/components/QuestCompleteModal';
 import { WalletButton } from '@/components/WalletButton';
-import { Scroll, History, Sparkles, Wallet } from 'lucide-react';
-import type { UserQuest } from '@/lib/contracts';
-import { DEMO_QUESTS } from '@/lib/questConfig';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Scroll, History, Sparkles, Wallet, Gamepad2, Trophy, Crown, Castle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-// Demo data for testing
-const DEMO_ACTIVE_QUESTS: UserQuest[] = [
-  {
-    questId: 1n,
-    amount: 500n * 10n ** 18n,
-    startTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 5), // Started 5 days ago
-    endTime: 0n,
-    xpEarned: 0n,
-  },
-  {
-    questId: 2n,
-    amount: 1000n * 10n ** 18n,
-    startTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 25), // Started 25 days ago
-    endTime: 0n,
-    xpEarned: 0n,
-  },
-];
-
-const DEMO_COMPLETED_QUESTS: UserQuest[] = [
-  {
-    questId: 1n,
-    amount: 200n * 10n ** 18n,
-    startTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 14),
-    endTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 7),
-    xpEarned: 1400n,
-  },
-  {
-    questId: 3n,
-    amount: 800n * 10n ** 18n,
-    startTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 90),
-    endTime: BigInt(Math.floor(Date.now() / 1000) - 86400 * 30),
-    xpEarned: 9600n,
-  },
-];
+interface CompletedGame {
+  id: string;
+  game_type: string;
+  difficulty: string;
+  xp_earned: number;
+  completed_at: string;
+  game_data: { result?: string; moves?: number; wave?: number };
+}
 
 export default function Journey() {
   const { address, isConnected } = useAccount();
-  const [completedQuest, setCompletedQuest] = useState<UserQuest | null>(null);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
-  const [completingQuestId, setCompletingQuestId] = useState<bigint | null>(null);
+  const navigate = useNavigate();
+  const [completedGames, setCompletedGames] = useState<CompletedGame[]>([]);
+  const [totalXP, setTotalXP] = useState(0);
+  const [gamesWon, setGamesWon] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  // Demo user stats (replace with contract calls)
-  const totalXP = 11000;
-  const questsCompleted = 2;
-  const totalYieldGenerated = 45.5;
+  useEffect(() => {
+    if (address) {
+      fetchPlayerData();
+    }
+  }, [address]);
 
-  const handleCompleteQuest = async (questId: bigint) => {
-    setCompletingQuestId(questId);
+  const fetchPlayerData = async () => {
+    if (!address) return;
     
     try {
-      // Simulate contract call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Find the completed quest for the modal
-      const quest = DEMO_ACTIVE_QUESTS.find(q => q.questId === questId);
-      if (quest) {
-        const completedQuestData: UserQuest = {
-          ...quest,
-          endTime: BigInt(Math.floor(Date.now() / 1000)),
-          xpEarned: 1500n, // Demo XP
-        };
-        setCompletedQuest(completedQuestData);
-        setIsCompleteModalOpen(true);
+      // Fetch completed games
+      const { data: games } = await supabase
+        .from('game_sessions')
+        .select('*')
+        .eq('wallet_address', address)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      if (games) {
+        setCompletedGames(games as CompletedGame[]);
+        const xp = games.reduce((sum, g) => sum + (g.xp_earned || 0), 0);
+        setTotalXP(xp);
+        const wins = games.filter(g => g.game_data?.result === 'win').length;
+        setGamesWon(wins);
       }
-      
-      toast.success('Quest completed successfully!');
     } catch (error) {
-      toast.error('Failed to complete quest');
+      console.error('Error fetching data:', error);
     } finally {
-      setCompletingQuestId(null);
+      setLoading(false);
     }
   };
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-20">
           <motion.div
@@ -95,13 +69,13 @@ export default function Journey() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-md mx-auto text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
-              <Wallet className="w-10 h-10 text-primary" />
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-foreground/10 flex items-center justify-center">
+              <Wallet className="w-10 h-10 text-foreground" />
             </div>
-            <h1 className="font-display text-3xl font-bold mb-4">
+            <h1 className="font-display text-3xl font-bold text-foreground mb-4">
               Connect Your Wallet
             </h1>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-foreground/60 mb-8">
               Connect your wallet to view your quest progress, XP, and rewards.
             </p>
             <WalletButton />
@@ -112,20 +86,20 @@ export default function Journey() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12 pt-24">
         {/* Page Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            My <span className="gradient-text">Journey</span>
+          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2 text-foreground">
+            My <span className="text-foreground">Journey</span>
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-foreground/60">
             Track your quest progress, XP gains, and rewards.
           </p>
         </motion.div>
@@ -137,67 +111,98 @@ export default function Journey() {
             <UserStats
               address={address!}
               totalXP={totalXP}
-              questsCompleted={questsCompleted}
-              totalYieldGenerated={totalYieldGenerated}
+              questsCompleted={completedGames.length}
+              totalYieldGenerated={gamesWon * 10}
             />
 
-            {/* Active Quests */}
+            {/* Quick Play */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
               <div className="flex items-center gap-2 mb-4">
-                <Scroll className="w-5 h-5 text-accent" />
-                <h2 className="font-display text-xl font-semibold">Active Quests</h2>
-                <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs font-semibold">
-                  {DEMO_ACTIVE_QUESTS.length}
-                </span>
+                <Gamepad2 className="w-5 h-5 text-foreground" />
+                <h2 className="font-display text-xl font-semibold text-foreground">Play Now</h2>
               </div>
 
-              {DEMO_ACTIVE_QUESTS.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {DEMO_ACTIVE_QUESTS.map((quest) => (
-                    <ActiveQuestCard
-                      key={quest.questId.toString()}
-                      userQuest={quest}
-                      questInfo={DEMO_QUESTS.find(q => q.id === quest.questId)}
-                      onComplete={handleCompleteQuest}
-                      isCompleting={completingQuestId === quest.questId}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 rounded-xl border border-dashed border-border">
-                  <Sparkles className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">No active quests</p>
-                  <p className="text-sm text-muted-foreground/70">
-                    Join a quest from the home page to get started!
-                  </p>
-                </div>
-              )}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => navigate('/game/chess')}
+                  className="h-20 gap-3 bg-foreground text-background hover:bg-foreground/90 font-bold text-lg"
+                >
+                  <Crown className="w-6 h-6" />
+                  Chess Quest
+                </Button>
+                <Button
+                  onClick={() => navigate('/game/tower_defense')}
+                  className="h-20 gap-3 bg-foreground text-background hover:bg-foreground/90 font-bold text-lg"
+                >
+                  <Castle className="w-6 h-6" />
+                  Tower Defense
+                </Button>
+              </div>
             </motion.section>
 
-            {/* Completed Quests */}
+            {/* Completed Games */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
               <div className="flex items-center gap-2 mb-4">
-                <History className="w-5 h-5 text-primary" />
-                <h2 className="font-display text-xl font-semibold">Completed Quests</h2>
+                <History className="w-5 h-5 text-foreground" />
+                <h2 className="font-display text-xl font-semibold text-foreground">Completed Games</h2>
               </div>
 
-              {DEMO_COMPLETED_QUESTS.length > 0 ? (
+              {loading ? (
+                <div className="text-center py-8 text-foreground/60">Loading...</div>
+              ) : completedGames.length > 0 ? (
                 <div className="space-y-3">
-                  {DEMO_COMPLETED_QUESTS.map((quest, index) => (
-                    <CompletedQuestCard key={index} userQuest={quest} />
+                  {completedGames.map((game) => (
+                    <motion.div
+                      key={game.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
+                    >
+                      <div className="flex items-center gap-3">
+                        {game.game_type === 'chess' ? (
+                          <Crown className="w-6 h-6 text-foreground" />
+                        ) : (
+                          <Castle className="w-6 h-6 text-foreground" />
+                        )}
+                        <div>
+                          <h4 className="font-semibold text-foreground capitalize">
+                            {game.game_type === 'tower_defense' ? 'Tower Defense' : game.game_type}
+                          </h4>
+                          <p className="text-xs text-foreground/60">
+                            {new Date(game.completed_at).toLocaleDateString()} • {game.difficulty}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-foreground">
+                          {game.game_data?.result === 'win' ? (
+                            <Trophy className="w-4 h-4" />
+                          ) : null}
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-semibold">+{game.xp_earned} XP</span>
+                        </div>
+                        <p className="text-xs text-foreground/60">
+                          {game.game_data?.result === 'win' ? 'Victory' : 'Completed'}
+                        </p>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 rounded-xl border border-dashed border-border">
-                  <p className="text-muted-foreground">No completed quests yet</p>
+                <div className="text-center py-12 rounded-xl border border-dashed border-border">
+                  <Sparkles className="w-10 h-10 mx-auto mb-3 text-foreground/30" />
+                  <p className="text-foreground/60">No completed games yet</p>
+                  <p className="text-sm text-foreground/40">
+                    Start playing to earn XP and track your progress!
+                  </p>
                 </div>
               )}
             </motion.section>
@@ -215,17 +220,6 @@ export default function Journey() {
           </div>
         </div>
       </div>
-
-      {/* Quest Complete Modal */}
-      <QuestCompleteModal
-        quest={completedQuest}
-        isOpen={isCompleteModalOpen}
-        onClose={() => {
-          setIsCompleteModalOpen(false);
-          setCompletedQuest(null);
-        }}
-        totalXP={totalXP + (completedQuest ? Number(completedQuest.xpEarned) : 0)}
-      />
     </div>
   );
 }

@@ -10,7 +10,6 @@ import {
   Trophy, 
   Star, 
   BookOpen, 
-  Target,
   Play,
   Pause,
   RotateCcw,
@@ -18,7 +17,8 @@ import {
   Zap,
   Heart,
   Coins,
-  Lock
+  Lock,
+  Lightbulb
 } from 'lucide-react';
 
 // Tower types
@@ -105,6 +105,20 @@ const MAPS = {
   volcano: { name: 'Volcano', unlocked: false, waves: 20, bgColor: 'bg-red-900/30' },
 };
 
+// Mantle tips to show on good moves
+const MANTLE_TIPS = [
+  "🎮 Mantle is a modular L2 scaling solution built on Ethereum!",
+  "💡 Mantle uses Optimistic Rollups for fast, low-cost transactions.",
+  "🔥 Build on Mantle: docs.mantle.xyz/network",
+  "⚡ Mantle achieves high throughput with data availability layers.",
+  "🌐 Mantle is EVM-compatible - deploy your Solidity contracts easily!",
+  "🔐 Mantle inherits Ethereum's security while reducing gas costs.",
+  "🚀 Learn to build dApps on Mantle: docs.mantle.xyz/developers",
+  "💰 Mantle uses $MNT as its native token for gas fees.",
+  "🏗️ Build scalable dApps with Mantle's modular architecture!",
+  "🔗 Mantle bridges assets seamlessly from Ethereum mainnet.",
+];
+
 export default function TowerDefenseGame() {
   const navigate = useNavigate();
   const { address } = useAccount();
@@ -123,6 +137,15 @@ export default function TowerDefenseGame() {
   const [unlockedTowers, setUnlockedTowers] = useState<string[]>(['basic']);
   const [showTutorial, setShowTutorial] = useState(false);
   const [placementMode, setPlacementMode] = useState(false);
+  const [mantleTip, setMantleTip] = useState<string | null>(null);
+  const [killCount, setKillCount] = useState(0);
+
+  // Show Mantle tip on kills
+  const showMantleTip = () => {
+    const tip = MANTLE_TIPS[Math.floor(Math.random() * MANTLE_TIPS.length)];
+    setMantleTip(tip);
+    setTimeout(() => setMantleTip(null), 4000);
+  };
 
   // Spawn enemies for current wave
   const spawnWave = useCallback(() => {
@@ -208,6 +231,14 @@ export default function TowerDefenseGame() {
                   if (newHealth <= 0) {
                     setGold(prev => prev + e.reward);
                     setXpEarned(prev => prev + 5);
+                    setKillCount(prev => {
+                      const newCount = prev + 1;
+                      // Show Mantle tip every 5 kills
+                      if (newCount % 5 === 0) {
+                        showMantleTip();
+                      }
+                      return newCount;
+                    });
                   }
                   return { ...e, health: newHealth };
                 }
@@ -341,6 +372,8 @@ export default function TowerDefenseGame() {
     setIsPlaying(false);
     setGameOver(false);
     setXpEarned(0);
+    setKillCount(0);
+    setMantleTip(null);
   };
 
   const unlockTower = (towerType: keyof typeof TOWER_TYPES) => {
@@ -379,6 +412,21 @@ export default function TowerDefenseGame() {
 
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
+          {/* Mantle Tip Banner */}
+          <AnimatePresence>
+            {mantleTip && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-4 rounded-xl bg-foreground/10 border border-foreground/20 flex items-center gap-3"
+              >
+                <Lightbulb className="w-5 h-5 text-foreground shrink-0" />
+                <p className="text-sm text-foreground">{mantleTip}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="grid lg:grid-cols-4 gap-6">
             {/* Game Stats */}
             <div className="space-y-4">
@@ -489,15 +537,6 @@ export default function TowerDefenseGame() {
                   <BookOpen className="w-4 h-4" />
                   Tutorial
                 </Button>
-                <a
-                  href="https://docs.mantle.xyz/network"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-2 px-4 border border-border rounded-lg text-foreground hover:bg-foreground/10 transition-colors"
-                >
-                  <Target className="w-4 h-4" />
-                  Learn Strategies
-                </a>
               </div>
             </div>
 
@@ -622,30 +661,33 @@ export default function TowerDefenseGame() {
             >
               {lives > 0 ? (
                 <>
-                  <Trophy className="w-16 h-16 text-primary mx-auto mb-4" />
+                  <Trophy className="w-16 h-16 text-foreground mx-auto mb-4" />
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">VICTORY!</h2>
-                  <p className="text-foreground/60">All waves defeated!</p>
+                  <p className="text-foreground/60 mb-2">All waves defeated!</p>
+                  <p className="text-sm text-foreground/50 mb-4">
+                    💡 Learn more about Mantle Network at docs.mantle.xyz
+                  </p>
                 </>
               ) : (
                 <>
                   <Castle className="w-16 h-16 text-foreground/50 mx-auto mb-4" />
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">DEFEAT</h2>
-                  <p className="text-foreground/60">Your base was destroyed</p>
+                  <p className="text-foreground/60 mb-4">Your base was destroyed</p>
                 </>
               )}
               
               <div className="flex items-center justify-center gap-2 my-6 px-4 py-3 bg-foreground/10 rounded-lg">
-                <Zap className="w-5 h-5 text-primary" />
+                <Zap className="w-5 h-5 text-foreground" />
                 <span className="font-bold text-foreground">+{xpEarned} XP Earned</span>
               </div>
               
               <div className="flex gap-3">
                 <Button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/journey')}
                   variant="outline"
                   className="flex-1 border-border text-foreground hover:bg-foreground/10"
                 >
-                  Exit
+                  View Journey
                 </Button>
                 <Button
                   onClick={resetGame}
@@ -679,8 +721,8 @@ export default function TowerDefenseGame() {
               <h2 className="font-display text-2xl font-bold text-foreground mb-6">Tower Defense Tutorial</h2>
               
               <div className="space-y-4 text-sm text-foreground/80">
-                <p><strong>Objective:</strong> Prevent enemies from reaching the end of the path!</p>
-                <p><strong>How to play:</strong></p>
+                <p><strong className="text-foreground">Objective:</strong> Prevent enemies from reaching the end of the path!</p>
+                <p><strong className="text-foreground">How to play:</strong></p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Select a tower from the sidebar</li>
                   <li>Click on the game board to place it</li>
@@ -688,17 +730,9 @@ export default function TowerDefenseGame() {
                   <li>Earn gold by defeating enemies</li>
                   <li>Unlock new towers with gold</li>
                 </ul>
-                <p><strong>XP Rewards:</strong> 5 XP per kill + 100 XP for victory</p>
+                <p><strong className="text-foreground">XP Rewards:</strong> 5 XP per kill + 100 XP for victory</p>
                 <p className="text-foreground/60">
-                  Learn advanced strategies at{' '}
-                  <a 
-                    href="https://docs.mantle.xyz/network" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    Mantle Documentation
-                  </a>
+                  Defeat enemies to learn about Mantle Network!
                 </p>
               </div>
               

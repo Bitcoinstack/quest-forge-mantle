@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getQuestConfig, formatDuration } from '@/lib/questConfig';
+import { getQuestConfig } from '@/lib/questConfig';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, AlertCircle, Coins, Clock, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Coins, Sparkles, Gamepad2 } from 'lucide-react';
 import type { Quest } from '@/lib/contracts';
 
 interface JoinQuestModalProps {
-  quest: Quest | null;
+  quest: (Quest & { gameType?: 'chess' | 'tower_defense' }) | null;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -22,11 +23,13 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
   const [amount, setAmount] = useState('');
   const [step, setStep] = useState<ModalStep>('input');
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
 
   if (!quest) return null;
 
   const config = getQuestConfig(Number(quest.id));
   const minAmount = Number(quest.minAmount) / 1e18;
+  const gameType = quest.gameType || 'chess';
 
   const handleJoinQuest = async () => {
     const stakeAmount = parseFloat(amount);
@@ -49,14 +52,15 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
       // Simulate join delay (replace with actual contract call)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Success
+      // Success - navigate to game immediately
       setStep('success');
-      toast.success('Quest joined successfully!');
+      toast.success('Quest joined! Starting game...');
       
       setTimeout(() => {
-        onSuccess();
         handleClose();
-      }, 2000);
+        // Navigate to the game immediately
+        navigate(`/game/${gameType}`);
+      }, 1500);
       
     } catch (error) {
       setStep('error');
@@ -76,7 +80,7 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl flex items-center gap-2">
+          <DialogTitle className="font-display text-2xl flex items-center gap-2 text-foreground">
             <span>{config.icon}</span>
             {config.name}
           </DialogTitle>
@@ -92,26 +96,19 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
               className="space-y-6"
             >
               {/* Quest Info */}
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-center gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-accent" />
+                  <Coins className="w-4 h-4 text-foreground/60" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="font-semibold">{formatDuration(Number(quest.minDuration))}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Min Stake</p>
-                    <p className="font-semibold">{minAmount.toLocaleString()} tokens</p>
+                    <p className="text-xs text-foreground/60">Min Stake</p>
+                    <p className="font-semibold text-foreground">{minAmount.toLocaleString()} tokens</p>
                   </div>
                 </div>
               </div>
 
               {/* Amount Input */}
               <div className="space-y-2">
-                <Label htmlFor="amount">Stake Amount</Label>
+                <Label htmlFor="amount" className="text-foreground">Stake Amount</Label>
                 <div className="relative">
                   <Input
                     id="amount"
@@ -119,31 +116,31 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
                     placeholder={`Min: ${minAmount}`}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pr-20 bg-muted/50 border-border"
+                    className="pr-20 bg-muted/50 border-border text-foreground"
                   />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 text-xs text-primary"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 text-xs text-foreground/60 hover:text-foreground"
                     onClick={() => setAmount(minAmount.toString())}
                   >
                     MAX
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-foreground/60">
                   Balance: 10,000 tokens (demo)
                 </p>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3">
-                <Button variant="outline" onClick={handleClose} className="flex-1">
+                <Button variant="outline" onClick={handleClose} className="flex-1 border-border text-foreground hover:bg-foreground/10">
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleJoinQuest}
                   disabled={!amount || parseFloat(amount) < minAmount}
-                  className="flex-1 gap-2 bg-gradient-to-r from-primary to-amber-600 hover:from-primary/90 hover:to-amber-600/90"
+                  className="flex-1 gap-2 bg-foreground text-background hover:bg-foreground/90"
                 >
                   <Sparkles className="w-4 h-4" />
                   Approve & Join
@@ -160,25 +157,25 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
               exit={{ opacity: 0, scale: 0.95 }}
               className="py-8 flex flex-col items-center gap-4"
             >
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <Loader2 className="w-12 h-12 text-foreground animate-spin" />
               <div className="text-center">
-                <p className="font-semibold text-lg">
+                <p className="font-semibold text-lg text-foreground">
                   {step === 'approving' ? 'Approving tokens...' : 'Joining quest...'}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-foreground/60">
                   Please confirm the transaction in your wallet
                 </p>
               </div>
               
               {/* Progress indicator */}
               <div className="flex items-center gap-2 mt-4">
-                <div className={`w-3 h-3 rounded-full ${step === 'approving' ? 'bg-primary animate-pulse' : 'bg-accent'}`} />
-                <div className="w-8 h-0.5 bg-muted" />
-                <div className={`w-3 h-3 rounded-full ${step === 'joining' ? 'bg-primary animate-pulse' : 'bg-muted'}`} />
+                <div className={`w-3 h-3 rounded-full ${step === 'approving' ? 'bg-foreground animate-pulse' : 'bg-foreground'}`} />
+                <div className="w-8 h-0.5 bg-foreground/20" />
+                <div className={`w-3 h-3 rounded-full ${step === 'joining' ? 'bg-foreground animate-pulse' : 'bg-foreground/20'}`} />
               </div>
-              <div className="flex items-center gap-6 text-xs text-muted-foreground">
-                <span className={step === 'approving' ? 'text-primary' : 'text-accent'}>Approve</span>
-                <span className={step === 'joining' ? 'text-primary' : ''}>Join Quest</span>
+              <div className="flex items-center gap-6 text-xs text-foreground/60">
+                <span className={step === 'approving' ? 'text-foreground' : 'text-foreground'}>Approve</span>
+                <span className={step === 'joining' ? 'text-foreground' : ''}>Join Quest</span>
               </div>
             </motion.div>
           )}
@@ -196,12 +193,13 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', bounce: 0.5 }}
               >
-                <CheckCircle2 className="w-16 h-16 text-accent" />
+                <CheckCircle2 className="w-16 h-16 text-foreground" />
               </motion.div>
               <div className="text-center">
-                <p className="font-display text-2xl font-bold gradient-text">Quest Joined!</p>
-                <p className="text-muted-foreground mt-2">
-                  Your adventure begins now. Return after {formatDuration(Number(quest.minDuration))} to complete.
+                <p className="font-display text-2xl font-bold text-foreground">Quest Joined!</p>
+                <p className="text-foreground/60 mt-2 flex items-center justify-center gap-2">
+                  <Gamepad2 className="w-4 h-4" />
+                  Starting your game...
                 </p>
               </div>
             </motion.div>
@@ -217,10 +215,10 @@ export function JoinQuestModal({ quest, isOpen, onClose, onSuccess }: JoinQuestM
             >
               <AlertCircle className="w-16 h-16 text-destructive" />
               <div className="text-center">
-                <p className="font-semibold text-lg">Transaction Failed</p>
-                <p className="text-sm text-muted-foreground mt-2">{errorMessage}</p>
+                <p className="font-semibold text-lg text-foreground">Transaction Failed</p>
+                <p className="text-sm text-foreground/60 mt-2">{errorMessage}</p>
               </div>
-              <Button variant="outline" onClick={() => setStep('input')}>
+              <Button variant="outline" onClick={() => setStep('input')} className="border-border text-foreground hover:bg-foreground/10">
                 Try Again
               </Button>
             </motion.div>
