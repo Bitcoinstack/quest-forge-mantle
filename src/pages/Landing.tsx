@@ -8,6 +8,7 @@ import { JoinQuestModal } from '@/components/JoinQuestModal';
 import { DEMO_QUESTS } from '@/lib/questConfig';
 import { Play, Scroll, Gamepad2, Shield, Zap, Trophy } from 'lucide-react';
 import type { Quest } from '@/lib/contracts';
+import warriorImage from '@/assets/warrior-character.png';
 
 export default function Landing() {
   const { isConnected } = useAccount();
@@ -31,7 +32,6 @@ export default function Landing() {
   const handleSuccess = (gameType: 'chess' | 'tower_defense') => {
     setIsModalOpen(false);
     setSelectedQuest(null);
-    // Navigate to the game
     navigate(`/game/${gameType}`);
   };
 
@@ -79,7 +79,7 @@ export default function Landing() {
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight text-foreground">
               YIELD QUEST
               <span className="block text-3xl md:text-4xl lg:text-5xl mt-2 text-foreground/80">
-                RPG ON MANTLE
+                ON MANTLE
               </span>
             </h1>
 
@@ -125,7 +125,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section - Stake Play Earn */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <motion.div
@@ -142,39 +142,59 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                icon: Gamepad2,
-                title: 'Play Games',
-                description: 'Chess strategy and Tower Defense games with progressive difficulty.',
-              },
-              {
-                icon: Zap,
-                title: 'Earn XP',
-                description: 'Level up your character through gameplay achievements and challenges.',
-              },
-              {
-                icon: Trophy,
-                title: 'Win Rewards',
-                description: 'Stake tokens to unlock games and earn yield while you play.',
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center p-8 rounded-2xl bg-card border border-border hover:border-foreground/20 transition-all duration-300"
-              >
-                <div className="w-16 h-16 mx-auto mb-6 rounded-xl bg-foreground/10 flex items-center justify-center">
-                  <feature.icon className="w-8 h-8 text-foreground" />
-                </div>
-                <h3 className="font-display text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
-                <p className="text-foreground/60 text-sm">{feature.description}</p>
-              </motion.div>
-            ))}
+          {/* Two column layout - Image left, Cards right */}
+          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
+            {/* Left side - Character Image */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="flex justify-center"
+            >
+              <img 
+                src={warriorImage} 
+                alt="Warrior Character" 
+                className="max-h-[500px] object-contain drop-shadow-2xl"
+              />
+            </motion.div>
+
+            {/* Right side - Feature Cards */}
+            <div className="space-y-6">
+              {[
+                {
+                  icon: Gamepad2,
+                  title: 'Play Games',
+                  description: 'Chess strategy and Tower Defense games with progressive difficulty.',
+                },
+                {
+                  icon: Zap,
+                  title: 'Earn XP',
+                  description: 'Level up your character through gameplay achievements and challenges.',
+                },
+                {
+                  icon: Trophy,
+                  title: 'Win Rewards',
+                  description: 'Stake tokens to unlock games and earn yield while you play.',
+                },
+              ].map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-start gap-6 p-6 rounded-2xl bg-card border border-border hover:border-foreground/20 transition-all duration-300"
+                >
+                  <div className="w-14 h-14 shrink-0 rounded-xl bg-foreground/10 flex items-center justify-center">
+                    <feature.icon className="w-7 h-7 text-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-xl font-semibold mb-2 text-foreground">{feature.title}</h3>
+                    <p className="text-foreground/60 text-sm">{feature.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -231,36 +251,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Learn More Section */}
-      <section className="py-20 bg-card border-t border-border">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              LEARN MANTLE NETWORK
-            </h2>
-            <p className="text-foreground/60 mb-8 max-w-xl mx-auto">
-              Master game strategies while learning about Mantle blockchain technology.
-            </p>
-            <a
-              href="https://docs.mantle.xyz/network"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background font-semibold rounded-lg hover:bg-foreground/90 transition-colors"
-            >
-              View Documentation
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-border py-8 bg-background">
         <div className="container mx-auto px-4 text-center text-sm text-foreground/50">
-          <p>Yield Quest RPG on Mantle • Built for DeFi Gamers</p>
+          <p>Yield Quest on Mantle • Built for DeFi Gamers</p>
         </div>
       </footer>
 
