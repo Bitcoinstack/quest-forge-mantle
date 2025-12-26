@@ -42,16 +42,64 @@ const PIECE_SYMBOLS: Record<PieceType, Record<PieceColor, string>> = {
   pawn: { white: '♙', black: '♟' },
 };
 
-// Mantle tips to show on good moves
-const MANTLE_TIPS = [
-  "🎮 Mantle is a modular L2 scaling solution built on Ethereum!",
-  "💡 Mantle uses Optimistic Rollups for fast, low-cost transactions.",
-  "🔥 Build on Mantle: docs.mantle.xyz/network",
-  "⚡ Mantle achieves high throughput with data availability layers.",
-  "🌐 Mantle is EVM-compatible - deploy your Solidity contracts easily!",
-  "🔐 Mantle inherits Ethereum's security while reducing gas costs.",
-  "🚀 Learn to build dApps on Mantle: docs.mantle.xyz/developers",
-  "💰 Mantle uses $MNT as its native token for gas fees.",
+// Comprehensive Mantle documentation tips - shown on every move
+const MANTLE_MOVE_TIPS: Record<PieceType, string[]> = {
+  pawn: [
+    "🏗️ PAWN MOVE: Like pawns moving forward, Mantle uses Optimistic Rollups to push transactions efficiently to Layer 1.",
+    "⚡ PAWN ADVANCE: Each pawn step is like a Mantle transaction - low gas, high speed! Mantle reduces costs by 80%+.",
+    "🔗 PAWN STRATEGY: Pawns work together like Mantle's modular architecture - Data Availability Layer + Execution Layer = efficiency.",
+    "💎 PAWN POTENTIAL: Pawns can become Queens, just like building on Mantle can scale your dApp to millions of users.",
+  ],
+  knight: [
+    "🐴 KNIGHT MOVE: Knights jump over pieces like Mantle jumps over L1 congestion with its Layer 2 scaling solution!",
+    "⚔️ KNIGHT TACTICS: Unique L-shaped moves mirror Mantle's unique modular rollup design - different path, better results.",
+    "🌐 KNIGHT FLEXIBILITY: Knights reach anywhere, like Mantle's EVM compatibility lets you deploy existing Solidity code instantly.",
+    "🔥 KNIGHT POWER: The knight's surprise attacks are like Mantle's fast finality - transactions confirmed in seconds!",
+  ],
+  bishop: [
+    "📐 BISHOP MOVE: Bishops travel diagonally like data flows through Mantle's specialized Data Availability layer.",
+    "🎯 BISHOP RANGE: Long-range attacks mirror Mantle's cross-chain bridging capabilities to Ethereum mainnet.",
+    "💡 BISHOP VISION: Bishops see the whole diagonal, like Mantle provides full visibility with block explorers and APIs.",
+    "🏛️ BISHOP STRATEGY: Pair your bishops like Mantle pairs security (from Ethereum) with scalability (from rollups).",
+  ],
+  rook: [
+    "🏰 ROOK MOVE: Rooks move in straight lines like Mantle's direct connection to Ethereum security guarantees.",
+    "🔐 ROOK POWER: The rook's strength represents Mantle's inherited Ethereum security - rock solid foundation!",
+    "📊 ROOK CONTROL: Control files and ranks like Mantle controls transaction ordering with its Sequencer.",
+    "⚙️ ROOK EFFICIENCY: Rooks maximize board control efficiently, like Mantle maximizes throughput with minimal cost.",
+  ],
+  queen: [
+    "👑 QUEEN MOVE: The Queen's versatility mirrors Mantle's full feature set - DeFi, NFTs, Gaming, all optimized!",
+    "💫 QUEEN POWER: Most powerful piece = Most powerful L2. Mantle handles complex smart contracts effortlessly.",
+    "🎪 QUEEN RANGE: Queens reach everywhere, like Mantle's ecosystem spans wallets, bridges, DEXs, and more.",
+    "🌟 QUEEN STRATEGY: The queen dominates like $MNT token powers the entire Mantle ecosystem for gas and governance.",
+  ],
+  king: [
+    "🏆 KING MOVE: The King is precious like your assets on Mantle - protected by Ethereum-grade security!",
+    "🛡️ KING SAFETY: Protect your king like Mantle's fraud proofs protect your transactions from invalid state changes.",
+    "👑 KING POSITION: Central king = central importance. Mantle keeps your funds secure at the protocol level.",
+    "🔒 KING DEFENSE: Castle to protect the king, bridge to Mantle to protect your gas fees from L1 costs!",
+  ],
+};
+
+// General Mantle tips for captures and special events
+const MANTLE_CAPTURE_TIPS = [
+  "⚔️ CAPTURE! Just like earning rewards in DeFi, Mantle lets you stack yields while keeping gas costs minimal.",
+  "🎯 PIECE CAPTURED! On Mantle, every transaction is an opportunity. Explore dApps at mantle.xyz/ecosystem",
+  "💰 NICE CAPTURE! Mantle's low fees mean more value stays in your pocket. Transaction costs often under $0.01!",
+  "🏆 STRATEGIC CAPTURE! Like good chess strategy, Mantle uses data compression to optimize every operation.",
+  "⚡ EXCELLENT MOVE! Mantle processes thousands of TPS - your dApp can handle any traffic surge.",
+];
+
+const MANTLE_CHECK_TIPS = [
+  "♟️ CHECK! Putting pressure on like Mantle puts pressure on high gas fees - driving costs down for everyone.",
+  "⚠️ CHECK! Your opponent is threatened, just like centralized solutions are threatened by Mantle's decentralization.",
+  "🎯 CHECK! Targeting the king like Mantle targets inefficiency in the blockchain space.",
+];
+
+const MANTLE_CHECKMATE_TIPS = [
+  "🏆 CHECKMATE! Victory through strategy, just like Mantle achieves scaling victory through modular architecture!",
+  "👑 CHECKMATE! You've won! Celebrate on Mantle - deploy your victory NFT with near-zero gas fees!",
 ];
 
 // Initialize chess board
@@ -87,7 +135,7 @@ const initializeBoard = (): Board => {
   return board;
 };
 
-// Check if move is valid (simplified for demo)
+// Check if move is valid with improved logic
 const isValidMove = (board: Board, from: Position, to: Position, piece: ChessPiece): boolean => {
   const dx = Math.abs(to.col - from.col);
   const dy = Math.abs(to.row - from.row);
@@ -95,6 +143,18 @@ const isValidMove = (board: Board, from: Position, to: Position, piece: ChessPie
   
   // Can't capture own piece
   if (targetPiece && targetPiece.color === piece.color) return false;
+  
+  // Check path is clear for sliding pieces
+  const isPathClear = (rowDir: number, colDir: number): boolean => {
+    let r = from.row + rowDir;
+    let c = from.col + colDir;
+    while (r !== to.row || c !== to.col) {
+      if (board[r][c]) return false;
+      r += rowDir;
+      c += colDir;
+    }
+    return true;
+  };
   
   switch (piece.type) {
     case 'pawn':
@@ -111,13 +171,22 @@ const isValidMove = (board: Board, from: Position, to: Position, piece: ChessPie
       return false;
       
     case 'rook':
-      return (dx === 0 || dy === 0);
+      if (dx !== 0 && dy !== 0) return false;
+      const rookRowDir = to.row > from.row ? 1 : to.row < from.row ? -1 : 0;
+      const rookColDir = to.col > from.col ? 1 : to.col < from.col ? -1 : 0;
+      return isPathClear(rookRowDir, rookColDir);
       
     case 'bishop':
-      return dx === dy;
+      if (dx !== dy) return false;
+      const bishopRowDir = to.row > from.row ? 1 : -1;
+      const bishopColDir = to.col > from.col ? 1 : -1;
+      return isPathClear(bishopRowDir, bishopColDir);
       
     case 'queen':
-      return dx === dy || dx === 0 || dy === 0;
+      if (dx !== dy && dx !== 0 && dy !== 0) return false;
+      const queenRowDir = to.row > from.row ? 1 : to.row < from.row ? -1 : 0;
+      const queenColDir = to.col > from.col ? 1 : to.col < from.col ? -1 : 0;
+      return isPathClear(queenRowDir, queenColDir);
       
     case 'king':
       return dx <= 1 && dy <= 1;
@@ -130,7 +199,41 @@ const isValidMove = (board: Board, from: Position, to: Position, piece: ChessPie
   }
 };
 
-// AI move (simple random valid move)
+// Check if a king is in check
+const isKingInCheck = (board: Board, kingColor: PieceColor): boolean => {
+  let kingPos: Position | null = null;
+  
+  // Find the king
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece && piece.type === 'king' && piece.color === kingColor) {
+        kingPos = { row, col };
+        break;
+      }
+    }
+    if (kingPos) break;
+  }
+  
+  if (!kingPos) return false;
+  
+  // Check if any enemy piece can attack the king
+  const enemyColor = kingColor === 'white' ? 'black' : 'white';
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece && piece.color === enemyColor) {
+        if (isValidMove(board, { row, col }, kingPos, piece)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+};
+
+// AI move with improved strategy
 const getAIMove = (board: Board): { from: Position; to: Position } | null => {
   const blackPieces: { pos: Position; piece: ChessPiece }[] = [];
   
@@ -143,17 +246,48 @@ const getAIMove = (board: Board): { from: Position; to: Position } | null => {
     }
   }
   
-  // Shuffle pieces
-  blackPieces.sort(() => Math.random() - 0.5);
+  // Prioritize captures
+  const captureMoves: { from: Position; to: Position; value: number }[] = [];
+  const regularMoves: { from: Position; to: Position }[] = [];
+  
+  const pieceValue: Record<PieceType, number> = {
+    pawn: 1,
+    knight: 3,
+    bishop: 3,
+    rook: 5,
+    queen: 9,
+    king: 100
+  };
   
   for (const { pos, piece } of blackPieces) {
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if (isValidMove(board, pos, { row, col }, piece)) {
-          return { from: pos, to: { row, col } };
+          const targetPiece = board[row][col];
+          if (targetPiece) {
+            captureMoves.push({ from: pos, to: { row, col }, value: pieceValue[targetPiece.type] });
+          } else {
+            regularMoves.push({ from: pos, to: { row, col } });
+          }
         }
       }
     }
+  }
+  
+  // Prioritize high-value captures
+  if (captureMoves.length > 0) {
+    captureMoves.sort((a, b) => b.value - a.value);
+    return { from: captureMoves[0].from, to: captureMoves[0].to };
+  }
+  
+  // Random regular move with preference for center control
+  if (regularMoves.length > 0) {
+    regularMoves.sort((a, b) => {
+      const aCenter = Math.abs(3.5 - a.to.row) + Math.abs(3.5 - a.to.col);
+      const bCenter = Math.abs(3.5 - b.to.row) + Math.abs(3.5 - b.to.col);
+      return aCenter - bCenter + (Math.random() - 0.5) * 2;
+    });
+    return regularMoves[0];
   }
   
   return null;
@@ -181,13 +315,25 @@ export default function ChessGame() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [capturedPieces, setCapturedPieces] = useState<{ white: ChessPiece[], black: ChessPiece[] }>({ white: [], black: [] });
   const [mantleTip, setMantleTip] = useState<string | null>(null);
+  const [isInCheck, setIsInCheck] = useState(false);
+  const [lastMovedPiece, setLastMovedPiece] = useState<PieceType | null>(null);
 
-  // Show Mantle tip on capture or good move
-  const showMantleTip = () => {
-    const tip = MANTLE_TIPS[Math.floor(Math.random() * MANTLE_TIPS.length)];
+  // Show Mantle tip based on move type
+  const showMantleTip = useCallback((pieceType: PieceType, wasCapture: boolean, wasCheck: boolean) => {
+    let tip: string;
+    
+    if (wasCheck) {
+      tip = MANTLE_CHECK_TIPS[Math.floor(Math.random() * MANTLE_CHECK_TIPS.length)];
+    } else if (wasCapture) {
+      tip = MANTLE_CAPTURE_TIPS[Math.floor(Math.random() * MANTLE_CAPTURE_TIPS.length)];
+    } else {
+      const pieceTips = MANTLE_MOVE_TIPS[pieceType];
+      tip = pieceTips[Math.floor(Math.random() * pieceTips.length)];
+    }
+    
     setMantleTip(tip);
-    setTimeout(() => setMantleTip(null), 4000);
-  };
+    setTimeout(() => setMantleTip(null), 5000);
+  }, []);
 
   // Calculate valid moves for selected piece
   useEffect(() => {
@@ -213,6 +359,11 @@ export default function ChessGame() {
     setValidMoves(moves);
   }, [selectedSquare, board]);
 
+  // Check for check status
+  useEffect(() => {
+    setIsInCheck(isKingInCheck(board, 'white'));
+  }, [board]);
+
   // AI turn
   useEffect(() => {
     if (isPlayerTurn || gameOver) return;
@@ -225,7 +376,7 @@ export default function ChessGame() {
         // No valid moves - player wins
         endGame('player');
       }
-    }, 500);
+    }, 800);
     
     return () => clearTimeout(timer);
   }, [isPlayerTurn, gameOver, board]);
@@ -235,16 +386,15 @@ export default function ChessGame() {
     const piece = newBoard[from.row][from.col];
     const capturedPiece = newBoard[to.row][to.col];
     
+    if (!piece) return;
+    
+    const wasCapture = !!capturedPiece;
+    
     if (capturedPiece) {
       setCapturedPieces(prev => ({
         ...prev,
         [color]: [...prev[color], capturedPiece]
       }));
-      
-      // Show Mantle tip when player captures a piece
-      if (color === 'white') {
-        showMantleTip();
-      }
       
       // Check for king capture
       if (capturedPiece.type === 'king') {
@@ -256,11 +406,29 @@ export default function ChessGame() {
     newBoard[to.row][to.col] = piece;
     newBoard[from.row][from.col] = null;
     
+    // Pawn promotion
+    if (piece.type === 'pawn') {
+      if ((piece.color === 'white' && to.row === 0) || (piece.color === 'black' && to.row === 7)) {
+        newBoard[to.row][to.col] = { type: 'queen', color: piece.color };
+      }
+    }
+    
     setBoard(newBoard);
     setMoveCount(prev => prev + 1);
+    setLastMovedPiece(piece.type);
+    
+    // Check if opponent is in check after move
+    const opponentColor = color === 'white' ? 'black' : 'white';
+    const wasCheck = isKingInCheck(newBoard, opponentColor);
+    
+    // Show Mantle tip on every player move
+    if (color === 'white') {
+      showMantleTip(piece.type, wasCapture, wasCheck);
+    }
+    
     setIsPlayerTurn(color !== 'white');
     setSelectedSquare(null);
-  }, [board]);
+  }, [board, showMantleTip]);
 
   const handleSquareClick = (row: number, col: number) => {
     if (!isPlayerTurn || gameOver) return;
@@ -290,6 +458,10 @@ export default function ChessGame() {
   const endGame = async (gameWinner: 'player' | 'ai') => {
     setGameOver(true);
     setWinner(gameWinner);
+    
+    if (gameWinner === 'player') {
+      setMantleTip(MANTLE_CHECKMATE_TIPS[Math.floor(Math.random() * MANTLE_CHECKMATE_TIPS.length)]);
+    }
     
     const difficultyData = DIFFICULTIES.find(d => d.id === difficulty)!;
     const baseXP = gameWinner === 'player' ? 100 : 25;
@@ -344,6 +516,7 @@ export default function ChessGame() {
     setCapturedPieces({ white: [], black: [] });
     setXpEarned(0);
     setMantleTip(null);
+    setIsInCheck(false);
   };
 
   return (
@@ -373,17 +546,35 @@ export default function ChessGame() {
 
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Mantle Tip Banner */}
-          <AnimatePresence>
+          {/* Mantle Tip Banner - Always visible during game */}
+          <AnimatePresence mode="wait">
             {mantleTip && (
               <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="mb-6 p-4 rounded-xl bg-foreground/10 border border-foreground/20 flex items-center gap-3"
+                key={mantleTip}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 flex items-start gap-3"
               >
-                <Lightbulb className="w-5 h-5 text-foreground shrink-0" />
-                <p className="text-sm text-foreground">{mantleTip}</p>
+                <Lightbulb className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-foreground font-medium">{mantleTip}</p>
+                  <p className="text-xs text-foreground/50 mt-1">docs.mantle.xyz</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Check Warning */}
+          <AnimatePresence>
+            {isInCheck && !gameOver && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-center"
+              >
+                <span className="text-red-400 font-bold">⚠️ YOUR KING IS IN CHECK!</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -421,6 +612,26 @@ export default function ChessGame() {
                     <span className="text-foreground/60">Turn</span>
                     <span className="font-semibold text-foreground">{isPlayerTurn ? 'Your Turn' : 'AI Thinking...'}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-foreground/60">Captured</span>
+                    <span className="font-semibold text-foreground">{capturedPieces.white.length} pieces</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mantle Learning Progress */}
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-900/20 to-teal-900/20 border border-emerald-500/20">
+                <h3 className="font-display text-lg font-semibold text-foreground mb-2">📚 Mantle Learning</h3>
+                <p className="text-xs text-foreground/60 mb-3">Every move teaches you about Mantle Network!</p>
+                <div className="text-sm text-foreground/80">
+                  <div className="flex justify-between mb-1">
+                    <span>Moves made</span>
+                    <span className="font-bold">{moveCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tips learned</span>
+                    <span className="font-bold">{Math.floor(moveCount / 2) + capturedPieces.white.length}</span>
+                  </div>
                 </div>
               </div>
 
@@ -448,7 +659,8 @@ export default function ChessGame() {
             {/* Chess Board */}
             <div className="lg:col-span-2">
               <div className="aspect-square max-w-lg mx-auto">
-                <div className="grid grid-cols-8 gap-0 border-4 border-foreground/20 rounded-lg overflow-hidden shadow-2xl">
+                {/* Deep Green Chess Board */}
+                <div className="grid grid-cols-8 gap-0 border-4 border-emerald-800 rounded-lg overflow-hidden shadow-2xl">
                   {board.map((row, rowIndex) =>
                     row.map((piece, colIndex) => {
                       const isLight = (rowIndex + colIndex) % 2 === 0;
@@ -462,23 +674,29 @@ export default function ChessGame() {
                           onClick={() => handleSquareClick(rowIndex, colIndex)}
                           className={`
                             aspect-square flex items-center justify-center cursor-pointer relative transition-all duration-200
-                            ${isLight ? 'bg-foreground/90' : 'bg-muted'}
-                            ${isSelected ? 'ring-4 ring-primary z-10' : ''}
-                            ${isValidMoveSquare ? 'after:absolute after:inset-0 after:bg-primary/30' : ''}
+                            ${isLight ? 'bg-emerald-200' : 'bg-emerald-800'}
+                            ${isSelected ? 'ring-4 ring-yellow-400 z-10' : ''}
+                            ${isValidMoveSquare ? 'after:absolute after:inset-0 after:bg-yellow-400/40' : ''}
                           `}
                         >
                           {piece && (
                             <motion.span
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className={`text-4xl md:text-5xl select-none ${piece.color === 'white' ? 'drop-shadow-lg' : ''}`}
-                              style={{ color: piece.color === 'white' ? 'hsl(0 0% 100%)' : 'hsl(0 0% 0%)' }}
+                              className={`text-4xl md:text-5xl select-none drop-shadow-lg`}
+                              style={{ 
+                                color: piece.color === 'white' ? 'hsl(0 0% 100%)' : 'hsl(0 0% 10%)',
+                                textShadow: piece.color === 'white' ? '2px 2px 4px rgba(0,0,0,0.5)' : '2px 2px 4px rgba(255,255,255,0.3)'
+                              }}
                             >
                               {PIECE_SYMBOLS[piece.type][piece.color]}
                             </motion.span>
                           )}
                           {isValidMoveSquare && !piece && (
-                            <div className="w-4 h-4 rounded-full bg-primary/50" />
+                            <div className="w-4 h-4 rounded-full bg-yellow-400/70 shadow-lg" />
+                          )}
+                          {isValidMoveSquare && piece && (
+                            <div className="absolute inset-1 border-4 border-red-500 rounded-sm opacity-70" />
                           )}
                         </motion.div>
                       );
@@ -489,14 +707,16 @@ export default function ChessGame() {
 
               {/* Captured Pieces */}
               <div className="mt-6 flex justify-between max-w-lg mx-auto">
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
+                  <span className="text-xs text-foreground/50 w-full mb-1">You captured:</span>
                   {capturedPieces.white.map((p, i) => (
-                    <span key={i} className="text-2xl" style={{ color: 'hsl(0 0% 0%)' }}>
+                    <span key={i} className="text-2xl" style={{ color: 'hsl(0 0% 20%)' }}>
                       {PIECE_SYMBOLS[p.type][p.color]}
                     </span>
                   ))}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap text-right">
+                  <span className="text-xs text-foreground/50 w-full mb-1">AI captured:</span>
                   {capturedPieces.black.map((p, i) => (
                     <span key={i} className="text-2xl" style={{ color: 'hsl(0 0% 100%)' }}>
                       {PIECE_SYMBOLS[p.type][p.color]}
@@ -526,11 +746,11 @@ export default function ChessGame() {
             >
               {winner === 'player' ? (
                 <>
-                  <Trophy className="w-16 h-16 text-foreground mx-auto mb-4" />
-                  <h2 className="font-display text-3xl font-bold text-foreground mb-2">VICTORY!</h2>
+                  <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                  <h2 className="font-display text-3xl font-bold text-foreground mb-2">CHECKMATE!</h2>
                   <p className="text-foreground/60 mb-2">Excellent strategy!</p>
-                  <p className="text-sm text-foreground/50 mb-4">
-                    💡 Learn more about Mantle Network at docs.mantle.xyz
+                  <p className="text-sm text-emerald-400 mb-4">
+                    🎓 You've learned {Math.floor(moveCount / 2) + capturedPieces.white.length} facts about Mantle!
                   </p>
                 </>
               ) : (
@@ -593,16 +813,19 @@ export default function ChessGame() {
                   <li>Win: 100 XP × difficulty multiplier</li>
                   <li>Loss: 25 XP × difficulty multiplier</li>
                 </ul>
-                <p className="text-foreground/60">
-                  Capture pieces to learn about Mantle Network!
-                </p>
+                <div className="p-3 bg-emerald-900/20 rounded-lg border border-emerald-500/20">
+                  <p className="text-emerald-400 font-semibold">📚 Learn While You Play!</p>
+                  <p className="text-foreground/60 text-xs mt-1">
+                    Every move you make teaches you about Mantle Network - the more you play, the more you learn!
+                  </p>
+                </div>
               </div>
               
               <Button
                 onClick={() => setShowTutorial(false)}
                 className="w-full mt-6 bg-foreground text-background hover:bg-foreground/90"
               >
-                Got it!
+                Start Playing!
               </Button>
             </motion.div>
           </motion.div>

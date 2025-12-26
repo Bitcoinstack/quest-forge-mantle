@@ -46,10 +46,16 @@ export default function Journey() {
         .order('completed_at', { ascending: false });
 
       if (games) {
-        setCompletedGames(games as CompletedGame[]);
+        setCompletedGames(games.map(g => ({
+          ...g,
+          game_data: (g.game_data as { result?: string; moves?: number; wave?: number }) || {}
+        })) as CompletedGame[]);
         const xp = games.reduce((sum, g) => sum + (g.xp_earned || 0), 0);
         setTotalXP(xp);
-        const wins = games.filter(g => g.game_data?.result === 'win').length;
+        const wins = games.filter(g => {
+          const gameData = g.game_data as { result?: string } | null;
+          return gameData?.result === 'win';
+        }).length;
         setGamesWon(wins);
       }
     } catch (error) {
