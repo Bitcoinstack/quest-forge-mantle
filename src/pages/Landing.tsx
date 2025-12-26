@@ -6,7 +6,7 @@ import { Header } from '@/components/Header';
 import { GameQuestCard } from '@/components/GameQuestCard';
 import { JoinQuestModal } from '@/components/JoinQuestModal';
 import { DEMO_QUESTS } from '@/lib/questConfig';
-import { Play, Scroll, Gamepad2, Shield, Zap, Trophy } from 'lucide-react';
+import { Play, Scroll, Gamepad2, Zap, Trophy, BookOpen, Crown } from 'lucide-react';
 import type { Quest } from '@/lib/contracts';
 import warriorImage from '@/assets/warrior-character.png';
 
@@ -72,7 +72,7 @@ export default function Landing() {
               transition={{ duration: 0.6 }}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-foreground/10 border border-foreground/20 mb-8"
             >
-              <Shield className="w-4 h-4 text-foreground" />
+              <Crown className="w-4 h-4 text-foreground" />
               <span className="text-sm font-medium text-foreground">Powered by Mantle Network</span>
             </motion.div>
 
@@ -84,7 +84,7 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg md:text-xl text-foreground/70 mb-12 max-w-2xl mx-auto">
-              Stake your tokens. Play epic games. Earn real yield and XP rewards.
+              Play epic chess and strategy games to make strategic moves. Earn real yield and XP rewards.
             </p>
 
             {/* Play Button */}
@@ -125,9 +125,20 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Features Section - Stake Play Earn */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
+      {/* Features Section - Stake Play Earn with Background Image */}
+      <section 
+        className="py-20 relative overflow-hidden"
+        style={{
+          backgroundImage: `url(${warriorImage})`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'left center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/90 to-background" />
+        
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -142,59 +153,42 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* Two column layout - Image left, Cards right */}
-          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
-            {/* Left side - Character Image */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="flex justify-center"
-            >
-              <img 
-                src={warriorImage} 
-                alt="Warrior Character" 
-                className="max-h-[500px] object-contain drop-shadow-2xl"
-              />
-            </motion.div>
-
-            {/* Right side - Feature Cards */}
-            <div className="space-y-6">
-              {[
-                {
-                  icon: Gamepad2,
-                  title: 'Play Games',
-                  description: 'Chess strategy and Tower Defense games with progressive difficulty.',
-                },
-                {
-                  icon: Zap,
-                  title: 'Earn XP',
-                  description: 'Level up your character through gameplay achievements and challenges.',
-                },
-                {
-                  icon: Trophy,
-                  title: 'Win Rewards',
-                  description: 'Stake tokens to unlock games and earn yield while you play.',
-                },
-              ].map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, x: 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-start gap-6 p-6 rounded-2xl bg-card border border-border hover:border-foreground/20 transition-all duration-300"
-                >
-                  <div className="w-14 h-14 shrink-0 rounded-xl bg-foreground/10 flex items-center justify-center">
-                    <feature.icon className="w-7 h-7 text-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-xl font-semibold mb-2 text-foreground">{feature.title}</h3>
-                    <p className="text-foreground/60 text-sm">{feature.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+          {/* Feature Cards - positioned to the right */}
+          <div className="max-w-2xl ml-auto space-y-6">
+            {[
+              {
+                icon: Gamepad2,
+                title: 'Play Games',
+                description: 'Chess strategy and Tower Defense games with progressive difficulty.',
+              },
+              {
+                icon: Zap,
+                title: 'Earn XP',
+                description: 'Level up through gameplay. Use chess and epic games to learn about Mantle Network while earning experience points and climbing the leaderboard.',
+              },
+              {
+                icon: Trophy,
+                title: 'Win Rewards',
+                description: 'Stake tokens to unlock games and earn yield while you play.',
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-start gap-6 p-6 rounded-2xl bg-card/90 backdrop-blur-sm border border-border hover:border-foreground/20 transition-all duration-300"
+              >
+                <div className="w-14 h-14 shrink-0 rounded-xl bg-foreground/10 flex items-center justify-center">
+                  <feature.icon className="w-7 h-7 text-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-display text-xl font-semibold mb-2 text-foreground">{feature.title}</h3>
+                  <p className="text-foreground/60 text-sm">{feature.description}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
