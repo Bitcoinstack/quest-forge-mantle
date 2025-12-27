@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { getRandomMantleFact, getMantleFactByCategory } from '@/lib/mantleFacts';
 import { 
   ArrowLeft, 
   Trophy, 
@@ -314,9 +315,20 @@ export default function ChessGame() {
   const [moveCount, setMoveCount] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [capturedPieces, setCapturedPieces] = useState<{ white: ChessPiece[], black: ChessPiece[] }>({ white: [], black: [] });
-  const [mantleTip, setMantleTip] = useState<string | null>(null);
+  const [mantleTip, setMantleTip] = useState<string>(getRandomMantleFact());
   const [isInCheck, setIsInCheck] = useState(false);
   const [lastMovedPiece, setLastMovedPiece] = useState<PieceType | null>(null);
+  const factIntervalRef = useRef<NodeJS.Timeout>();
+
+  // Rotate Mantle facts constantly every 4 seconds
+  useEffect(() => {
+    factIntervalRef.current = setInterval(() => {
+      setMantleTip(getRandomMantleFact());
+    }, 4000);
+    return () => {
+      if (factIntervalRef.current) clearInterval(factIntervalRef.current);
+    };
+  }, []);
 
   // Show Mantle tip based on move type
   const showMantleTip = useCallback((pieceType: PieceType, wasCapture: boolean, wasCheck: boolean) => {
@@ -332,7 +344,6 @@ export default function ChessGame() {
     }
     
     setMantleTip(tip);
-    setTimeout(() => setMantleTip(null), 5000);
   }, []);
 
   // Calculate valid moves for selected piece
@@ -546,24 +557,24 @@ export default function ChessGame() {
 
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Mantle Tip Banner - Always visible during game */}
-          <AnimatePresence mode="wait">
-            {mantleTip && (
-              <motion.div
-                key={mantleTip}
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 flex items-start gap-3"
-              >
-                <Lightbulb className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-foreground font-medium">{mantleTip}</p>
-                  <p className="text-xs text-foreground/50 mt-1">docs.mantle.xyz</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Mantle Fact Banner - Always visible and rotating */}
+          <motion.div
+            key={mantleTip}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Lightbulb className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-foreground font-medium leading-relaxed">{mantleTip}</p>
+                <p className="text-xs text-emerald-400/70 mt-1">📚 docs.mantle.xyz • Every move teaches you about Mantle!</p>
+              </div>
+            </div>
+          </motion.div>
 
           {/* Check Warning */}
           <AnimatePresence>
