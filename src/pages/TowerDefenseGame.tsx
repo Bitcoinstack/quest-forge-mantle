@@ -5,11 +5,11 @@ import { useAccount } from 'wagmi';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { getRandomMantleFact, getMantleFactByCategory } from '@/lib/mantleFacts';
 import { 
   ArrowLeft, 
   Trophy, 
   Star, 
-  BookOpen, 
   Play,
   Pause,
   RotateCcw,
@@ -25,13 +25,18 @@ import {
   Target,
   Flame,
   Snowflake,
-  Compass
+  Users,
+  Wind,
+  Mountain,
+  Skull,
+  Crown,
+  Sparkles
 } from 'lucide-react';
 
-// Tower types with enhanced visuals
+// Enhanced Tower types with isometric-style visuals
 interface Tower {
   id: string;
-  type: 'archer' | 'cannon' | 'wizard' | 'frost' | 'barracks' | 'tesla';
+  type: TowerType;
   x: number;
   y: number;
   level: number;
@@ -39,12 +44,15 @@ interface Tower {
   range: number;
   fireRate: number;
   lastFired: number;
+  kills: number;
 }
+
+type TowerType = 'archer' | 'cannon' | 'wizard' | 'frost' | 'barracks' | 'tesla';
 
 // Enemy types with different characteristics
 interface Enemy {
   id: string;
-  type: 'goblin' | 'orc' | 'troll' | 'dragon' | 'necromancer';
+  type: EnemyType;
   x: number;
   y: number;
   health: number;
@@ -53,287 +61,366 @@ interface Enemy {
   pathIndex: number;
   reward: number;
   armor: number;
+  slowed: boolean;
 }
 
-// Tower definitions - more variety and strategy
-const TOWER_TYPES = {
+type EnemyType = 'goblin' | 'orc' | 'troll' | 'dragon' | 'necromancer' | 'golem' | 'wraith';
+
+// Projectile interface for visual effects
+interface Projectile {
+  id: string;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  type: TowerType;
+}
+
+// Enhanced Tower definitions with isometric-style design
+const TOWER_TYPES: Record<TowerType, {
+  name: string;
+  cost: number;
+  damage: number;
+  range: number;
+  fireRate: number;
+  icon: typeof Target;
+  color: string;
+  bgColor: string;
+  description: string;
+  special: string;
+  unlocked: boolean;
+}> = {
   archer: { 
     name: 'Archer Tower', 
     cost: 50, 
-    damage: 15, 
-    range: 120, 
-    fireRate: 800,
+    damage: 18, 
+    range: 140, 
+    fireRate: 600,
     icon: Target,
-    color: 'from-amber-600 to-amber-800',
-    description: 'Fast attacks, good range',
+    color: 'text-amber-400',
+    bgColor: 'bg-gradient-to-b from-amber-700 via-amber-800 to-amber-900',
+    description: 'Fast attacks, excellent range',
+    special: 'Critical Hit Chance',
     unlocked: true
   },
   cannon: { 
     name: 'Cannon Tower', 
     cost: 100, 
-    damage: 40, 
-    range: 100, 
-    fireRate: 1500,
+    damage: 55, 
+    range: 110, 
+    fireRate: 1400,
     icon: Flame,
-    color: 'from-orange-600 to-red-800',
-    description: 'Heavy damage, splash effect',
+    color: 'text-orange-400',
+    bgColor: 'bg-gradient-to-b from-stone-600 via-stone-700 to-stone-800',
+    description: 'Heavy AOE damage',
+    special: 'Splash Damage',
     unlocked: true
   },
   wizard: { 
     name: 'Wizard Tower', 
-    cost: 150, 
-    damage: 30, 
-    range: 90, 
-    fireRate: 1200,
-    icon: Zap,
-    color: 'from-purple-600 to-indigo-800',
-    description: 'Magic damage, ignores armor',
+    cost: 175, 
+    damage: 40, 
+    range: 100, 
+    fireRate: 1000,
+    icon: Sparkles,
+    color: 'text-purple-400',
+    bgColor: 'bg-gradient-to-b from-purple-700 via-indigo-800 to-purple-900',
+    description: 'Magic damage ignores armor',
+    special: 'Armor Piercing',
     unlocked: false
   },
   frost: { 
     name: 'Frost Tower', 
-    cost: 120, 
-    damage: 10, 
-    range: 100, 
-    fireRate: 600,
+    cost: 125, 
+    damage: 12, 
+    range: 120, 
+    fireRate: 500,
     icon: Snowflake,
-    color: 'from-cyan-400 to-blue-600',
-    description: 'Slows enemies significantly',
+    color: 'text-cyan-400',
+    bgColor: 'bg-gradient-to-b from-cyan-600 via-blue-700 to-cyan-800',
+    description: 'Slows all enemies in range',
+    special: '50% Slow Effect',
     unlocked: false
   },
   barracks: { 
     name: 'Barracks', 
-    cost: 80, 
-    damage: 20, 
-    range: 60, 
-    fireRate: 1000,
-    icon: Sword,
-    color: 'from-green-600 to-emerald-800',
-    description: 'Spawns soldiers to block path',
+    cost: 90, 
+    damage: 25, 
+    range: 70, 
+    fireRate: 800,
+    icon: Users,
+    color: 'text-green-400',
+    bgColor: 'bg-gradient-to-b from-green-700 via-emerald-800 to-green-900',
+    description: 'Spawns soldiers to block',
+    special: 'Path Blocking',
     unlocked: false
   },
   tesla: { 
     name: 'Tesla Tower', 
-    cost: 200, 
-    damage: 60, 
-    range: 80, 
+    cost: 250, 
+    damage: 80, 
+    range: 90, 
     fireRate: 2000,
     icon: Zap,
-    color: 'from-yellow-400 to-amber-600',
-    description: 'Chain lightning, hits multiple',
+    color: 'text-yellow-300',
+    bgColor: 'bg-gradient-to-b from-yellow-600 via-amber-700 to-yellow-800',
+    description: 'Chain lightning effect',
+    special: 'Hits 3 Enemies',
     unlocked: false
   },
 };
 
-// Enhanced Maps with different themes and paths
-const MAPS = {
+// Enemy definitions with varied characteristics
+const ENEMY_TYPES: Record<EnemyType, {
+  emoji: string;
+  health: number;
+  speed: number;
+  armor: number;
+  reward: number;
+  color: string;
+}> = {
+  goblin: { emoji: '👺', health: 40, speed: 1.8, armor: 0, reward: 12, color: 'bg-green-600' },
+  orc: { emoji: '👹', health: 80, speed: 1.2, armor: 8, reward: 18, color: 'bg-green-800' },
+  troll: { emoji: '🧌', health: 150, speed: 0.8, armor: 15, reward: 30, color: 'bg-stone-600' },
+  dragon: { emoji: '🐉', health: 200, speed: 1.4, armor: 12, reward: 50, color: 'bg-red-700' },
+  necromancer: { emoji: '💀', health: 100, speed: 1.0, armor: 5, reward: 35, color: 'bg-purple-800' },
+  golem: { emoji: '🗿', health: 300, speed: 0.5, armor: 25, reward: 60, color: 'bg-stone-700' },
+  wraith: { emoji: '👻', health: 60, speed: 2.0, armor: 0, reward: 25, color: 'bg-indigo-700' },
+};
+
+// Enhanced Maps with isometric paths and unique themes
+const MAPS: Record<string, {
+  name: string;
+  unlocked: boolean;
+  waves: number;
+  description: string;
+  theme: string;
+  bgGradient: string;
+  pathColor: string;
+  glowColor: string;
+  path: { x: number; y: number }[];
+  decorations: { x: number; y: number; type: string }[];
+}> = {
   greenlands: { 
     name: 'Greenlands', 
     unlocked: true, 
-    waves: 10,
-    description: 'Peaceful meadows under siege',
-    gradient: 'from-emerald-900 via-green-800 to-emerald-900',
+    waves: 12,
+    description: 'Rolling hills under siege by dark forces',
+    theme: 'forest',
+    bgGradient: 'from-emerald-950 via-green-900 to-emerald-950',
+    pathColor: 'rgba(139, 90, 43, 0.9)',
+    glowColor: 'rgba(34, 197, 94, 0.3)',
     path: [
-      { x: 0, y: 180 },
-      { x: 120, y: 180 },
-      { x: 120, y: 80 },
-      { x: 280, y: 80 },
-      { x: 280, y: 280 },
-      { x: 420, y: 280 },
-      { x: 420, y: 180 },
-      { x: 600, y: 180 },
+      { x: 0, y: 200 },
+      { x: 100, y: 200 },
+      { x: 100, y: 80 },
+      { x: 250, y: 80 },
+      { x: 250, y: 320 },
+      { x: 400, y: 320 },
+      { x: 400, y: 150 },
+      { x: 550, y: 150 },
+      { x: 550, y: 250 },
+      { x: 700, y: 250 },
     ],
-    mantleTip: "🌱 GREENLANDS: Like Mantle's foundation, start with basics and build up!"
+    decorations: [
+      { x: 50, y: 120, type: '🌲' },
+      { x: 180, y: 180, type: '🌳' },
+      { x: 320, y: 80, type: '🌲' },
+      { x: 480, y: 280, type: '🌳' },
+      { x: 150, y: 300, type: '🪨' },
+    ]
   },
   volcano: { 
     name: 'Volcanic Forge', 
     unlocked: false, 
     waves: 15,
-    description: 'Battle in the heart of the mountain',
-    gradient: 'from-red-900 via-orange-800 to-red-900',
+    description: 'The fiery heart of the mountain awaits',
+    theme: 'fire',
+    bgGradient: 'from-red-950 via-orange-900 to-red-950',
+    pathColor: 'rgba(80, 40, 30, 0.9)',
+    glowColor: 'rgba(239, 68, 68, 0.4)',
     path: [
-      { x: 0, y: 100 },
-      { x: 150, y: 100 },
-      { x: 150, y: 250 },
-      { x: 300, y: 250 },
-      { x: 300, y: 150 },
-      { x: 450, y: 150 },
-      { x: 450, y: 300 },
-      { x: 600, y: 300 },
+      { x: 0, y: 120 },
+      { x: 120, y: 120 },
+      { x: 120, y: 280 },
+      { x: 280, y: 280 },
+      { x: 280, y: 80 },
+      { x: 450, y: 80 },
+      { x: 450, y: 200 },
+      { x: 550, y: 200 },
+      { x: 550, y: 350 },
+      { x: 700, y: 350 },
     ],
-    mantleTip: "🌋 VOLCANIC FORGE: Hot like Mantle's transaction throughput - 1000s per second!"
+    decorations: [
+      { x: 60, y: 200, type: '🌋' },
+      { x: 200, y: 150, type: '🔥' },
+      { x: 380, y: 180, type: '🌋' },
+      { x: 520, y: 100, type: '🔥' },
+    ]
   },
   crystalCave: { 
     name: 'Crystal Caverns', 
     unlocked: false, 
-    waves: 20,
-    description: 'Ancient crystals hold great power',
-    gradient: 'from-purple-900 via-indigo-800 to-purple-900',
+    waves: 18,
+    description: 'Ancient crystals pulse with arcane energy',
+    theme: 'crystal',
+    bgGradient: 'from-indigo-950 via-purple-900 to-indigo-950',
+    pathColor: 'rgba(70, 50, 100, 0.9)',
+    glowColor: 'rgba(168, 85, 247, 0.4)',
     path: [
-      { x: 0, y: 200 },
-      { x: 100, y: 200 },
-      { x: 100, y: 50 },
-      { x: 250, y: 50 },
-      { x: 250, y: 300 },
-      { x: 400, y: 300 },
-      { x: 400, y: 100 },
-      { x: 550, y: 100 },
-      { x: 550, y: 200 },
-      { x: 600, y: 200 },
+      { x: 0, y: 180 },
+      { x: 80, y: 180 },
+      { x: 80, y: 50 },
+      { x: 200, y: 50 },
+      { x: 200, y: 320 },
+      { x: 350, y: 320 },
+      { x: 350, y: 150 },
+      { x: 500, y: 150 },
+      { x: 500, y: 280 },
+      { x: 620, y: 280 },
+      { x: 620, y: 180 },
+      { x: 700, y: 180 },
     ],
-    mantleTip: "💎 CRYSTAL CAVERNS: Valuable like $MNT - the native token powering Mantle!"
+    decorations: [
+      { x: 130, y: 120, type: '💎' },
+      { x: 280, y: 200, type: '💎' },
+      { x: 420, y: 80, type: '✨' },
+      { x: 560, y: 350, type: '💎' },
+    ]
   },
   darkCastle: { 
     name: 'Dark Castle', 
     unlocked: false, 
     waves: 25,
-    description: 'The final fortress of evil',
-    gradient: 'from-gray-900 via-slate-800 to-gray-900',
+    description: 'The final stronghold of the dark lord',
+    theme: 'dark',
+    bgGradient: 'from-slate-950 via-gray-900 to-slate-950',
+    pathColor: 'rgba(40, 40, 50, 0.9)',
+    glowColor: 'rgba(100, 116, 139, 0.4)',
     path: [
-      { x: 0, y: 150 },
-      { x: 80, y: 150 },
-      { x: 80, y: 50 },
-      { x: 200, y: 50 },
-      { x: 200, y: 250 },
-      { x: 350, y: 250 },
-      { x: 350, y: 100 },
-      { x: 500, y: 100 },
-      { x: 500, y: 300 },
-      { x: 600, y: 300 },
+      { x: 0, y: 200 },
+      { x: 60, y: 200 },
+      { x: 60, y: 60 },
+      { x: 180, y: 60 },
+      { x: 180, y: 320 },
+      { x: 300, y: 320 },
+      { x: 300, y: 140 },
+      { x: 420, y: 140 },
+      { x: 420, y: 280 },
+      { x: 540, y: 280 },
+      { x: 540, y: 100 },
+      { x: 650, y: 100 },
+      { x: 650, y: 200 },
+      { x: 700, y: 200 },
     ],
-    mantleTip: "🏰 DARK CASTLE: Secure like Mantle's Ethereum-inherited security!"
+    decorations: [
+      { x: 120, y: 150, type: '🏰' },
+      { x: 240, y: 200, type: '⚰️' },
+      { x: 370, y: 60, type: '🦇' },
+      { x: 480, y: 350, type: '💀' },
+      { x: 600, y: 180, type: '🏰' },
+    ]
   },
 };
-
-// Mantle tips based on game actions
-const MANTLE_TOWER_TIPS: Record<string, string[]> = {
-  archer: [
-    "🏹 ARCHER TOWER: Fast and efficient, like Mantle's sub-second transaction confirmations!",
-    "🎯 ARCHER PLACED: Precision targeting like Mantle's optimized gas pricing mechanism.",
-  ],
-  cannon: [
-    "💥 CANNON TOWER: High impact, just like Mantle's modular architecture on blockchain scaling!",
-    "🔥 CANNON DEPLOYED: Powerful attacks mirror Mantle's powerful smart contract execution.",
-  ],
-  wizard: [
-    "✨ WIZARD TOWER: Magic bypasses armor, like Mantle bypasses L1 congestion with rollups!",
-    "🔮 WIZARD SUMMONED: Mystical powers = Mantle's data availability layer innovation.",
-  ],
-  frost: [
-    "❄️ FROST TOWER: Slows enemies like Mantle's fraud proofs slow down invalid transactions!",
-    "🧊 FROST DEPLOYED: Control the battlefield, control your gas costs with Mantle.",
-  ],
-  barracks: [
-    "⚔️ BARRACKS: Soldiers defend the path, like Mantle validators defend the network!",
-    "🛡️ BARRACKS BUILT: Strategic defense = Mantle's layered security approach.",
-  ],
-  tesla: [
-    "⚡ TESLA TOWER: Chain lightning hits many, like Mantle's batch processing handles many TXs!",
-    "🌩️ TESLA ONLINE: Electric efficiency = Mantle's 80%+ gas savings vs Ethereum L1.",
-  ],
-};
-
-const MANTLE_WAVE_TIPS = [
-  "🌊 WAVE COMPLETE! Like completing a batch of transactions on Mantle - efficient and fast!",
-  "⚔️ ENEMIES DEFEATED! Your strategy is strong, like Mantle's modular design strategy.",
-  "🏆 WAVE SURVIVED! Resilient defense, like Mantle's inherited Ethereum security.",
-  "💪 GREAT DEFENSE! You're learning, just like developers learn to build on Mantle.",
-  "🎮 WAVE CLEARED! Each wave is experience, each Mantle TX is sub-$0.01.",
-];
-
-const MANTLE_KILL_TIPS = [
-  "💀 ENEMY DOWN! Each kill = knowledge. Mantle processes 1000+ TPS!",
-  "⚔️ DEFEATED! Victory through strategy, like Mantle's Optimistic Rollup strategy.",
-  "🎯 TARGET ELIMINATED! Precision like Mantle's EVM-compatible smart contracts.",
-  "💥 DESTROYED! Power like Mantle's $3B+ TVL ecosystem strength.",
-  "🔥 VANQUISHED! Build your empire, build on Mantle at docs.mantle.xyz!",
-];
-
-const MANTLE_MAP_DISCOVERIES = [
-  "🗺️ NEW TERRITORY! Explore Mantle's ecosystem at mantle.xyz/ecosystem",
-  "🌍 MAP UNLOCKED! New lands await, like new opportunities on Mantle DeFi.",
-  "🏔️ REGION DISCOVERED! Adventure awaits, bridges await at bridge.mantle.xyz",
-  "🗝️ SECRET REVEALED! Unlock Mantle's potential - EVM compatible, lower fees!",
-];
 
 export default function TowerDefenseGame() {
   const navigate = useNavigate();
   const { address } = useAccount();
   const gameLoopRef = useRef<number>();
+  const factIntervalRef = useRef<NodeJS.Timeout>();
   
   const [towers, setTowers] = useState<Tower[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
-  const [gold, setGold] = useState(250);
-  const [lives, setLives] = useState(20);
+  const [projectiles, setProjectiles] = useState<Projectile[]>([]);
+  const [gold, setGold] = useState(300);
+  const [lives, setLives] = useState(25);
   const [wave, setWave] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [victory, setVictory] = useState(false);
-  const [selectedTower, setSelectedTower] = useState<keyof typeof TOWER_TYPES | null>('archer');
-  const [currentMap, setCurrentMap] = useState<keyof typeof MAPS>('greenlands');
+  const [selectedTower, setSelectedTower] = useState<TowerType | null>('archer');
+  const [currentMap, setCurrentMap] = useState<string>('greenlands');
   const [xpEarned, setXpEarned] = useState(0);
-  const [unlockedTowers, setUnlockedTowers] = useState<string[]>(['archer', 'cannon']);
+  const [unlockedTowers, setUnlockedTowers] = useState<TowerType[]>(['archer', 'cannon']);
   const [unlockedMaps, setUnlockedMaps] = useState<string[]>(['greenlands']);
-  const [showTutorial, setShowTutorial] = useState(false);
   const [placementMode, setPlacementMode] = useState(false);
-  const [mantleTip, setMantleTip] = useState<string | null>(null);
+  const [mantleFact, setMantleFact] = useState<string>(getRandomMantleFact());
   const [killCount, setKillCount] = useState(0);
   const [totalKills, setTotalKills] = useState(0);
+  const [showMapSelect, setShowMapSelect] = useState(false);
 
   const currentMapData = MAPS[currentMap];
   const currentPath = currentMapData.path;
 
-  // Show Mantle tip
-  const showMantleTip = useCallback((tip: string) => {
-    setMantleTip(tip);
-    setTimeout(() => setMantleTip(null), 5000);
+  // Show Mantle fact constantly - rotate every 4 seconds
+  useEffect(() => {
+    factIntervalRef.current = setInterval(() => {
+      setMantleFact(getRandomMantleFact());
+    }, 4000);
+    
+    return () => {
+      if (factIntervalRef.current) {
+        clearInterval(factIntervalRef.current);
+      }
+    };
   }, []);
 
-  // Spawn enemies for current wave with variety
+  // Show contextual Mantle fact
+  const showContextualFact = useCallback((context: 'tower' | 'kill' | 'wave' | 'discovery') => {
+    const categories: Record<string, 'technology' | 'ecosystem' | 'benefits' | 'strategy'> = {
+      tower: 'technology',
+      kill: 'benefits',
+      wave: 'strategy',
+      discovery: 'ecosystem',
+    };
+    const fact = getMantleFactByCategory(categories[context]);
+    setMantleFact(fact);
+  }, []);
+
+  // Spawn enemies for current wave
   const spawnWave = useCallback(() => {
-    const enemyCount = wave * 2 + 5;
+    const enemyCount = wave * 3 + 6;
     const newEnemies: Enemy[] = [];
-    const enemyTypes: Enemy['type'][] = ['goblin', 'orc', 'troll', 'dragon', 'necromancer'];
+    const availableTypes: EnemyType[] = ['goblin'];
+    
+    if (wave >= 2) availableTypes.push('orc');
+    if (wave >= 4) availableTypes.push('troll');
+    if (wave >= 6) availableTypes.push('necromancer');
+    if (wave >= 8) availableTypes.push('dragon');
+    if (wave >= 10) availableTypes.push('wraith');
+    if (wave >= 12) availableTypes.push('golem');
     
     for (let i = 0; i < enemyCount; i++) {
-      // Vary enemy types based on wave
-      const typeIndex = Math.min(Math.floor(wave / 3), enemyTypes.length - 1);
-      const type = enemyTypes[Math.floor(Math.random() * (typeIndex + 1))];
-      
-      const baseStats = {
-        goblin: { health: 30, speed: 1.5, armor: 0, reward: 10 },
-        orc: { health: 60, speed: 1, armor: 5, reward: 15 },
-        troll: { health: 100, speed: 0.7, armor: 10, reward: 25 },
-        dragon: { health: 150, speed: 1.2, armor: 15, reward: 40 },
-        necromancer: { health: 80, speed: 0.8, armor: 5, reward: 30 },
-      };
-      
-      const stats = baseStats[type];
+      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      const baseStats = ENEMY_TYPES[type];
+      const waveScaling = 1 + (wave - 1) * 0.12;
       
       newEnemies.push({
-        id: `enemy-${wave}-${i}`,
+        id: `enemy-${wave}-${i}-${Date.now()}`,
         type,
-        x: currentPath[0].x - (i * 50),
+        x: currentPath[0].x - (i * 60),
         y: currentPath[0].y,
-        health: stats.health + wave * 10,
-        maxHealth: stats.health + wave * 10,
-        speed: stats.speed + wave * 0.05,
+        health: Math.floor(baseStats.health * waveScaling),
+        maxHealth: Math.floor(baseStats.health * waveScaling),
+        speed: baseStats.speed + wave * 0.03,
         pathIndex: 0,
-        reward: stats.reward + wave * 2,
-        armor: stats.armor,
+        reward: Math.floor(baseStats.reward * (1 + wave * 0.1)),
+        armor: baseStats.armor + Math.floor(wave / 3),
+        slowed: false,
       });
     }
     
     setEnemies(prev => [...prev, ...newEnemies]);
   }, [wave, currentPath]);
 
-  // Game loop
+  // Main game loop
   useEffect(() => {
     if (!isPlaying || gameOver) return;
     
     const gameLoop = () => {
       const now = Date.now();
       
+      // Move enemies
       setEnemies(prevEnemies => {
         return prevEnemies.map(enemy => {
           const targetPoint = currentPath[enemy.pathIndex];
@@ -342,6 +429,8 @@ export default function TowerDefenseGame() {
           const dx = targetPoint.x - enemy.x;
           const dy = targetPoint.y - enemy.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          const effectiveSpeed = enemy.slowed ? enemy.speed * 0.5 : enemy.speed;
           
           if (distance < 5) {
             if (enemy.pathIndex < currentPath.length - 1) {
@@ -361,8 +450,9 @@ export default function TowerDefenseGame() {
           
           return {
             ...enemy,
-            x: enemy.x + (dx / distance) * enemy.speed,
-            y: enemy.y + (dy / distance) * enemy.speed,
+            x: enemy.x + (dx / distance) * effectiveSpeed,
+            y: enemy.y + (dy / distance) * effectiveSpeed,
+            slowed: false, // Reset slow each frame
           };
         }).filter(e => e.health > 0);
       });
@@ -372,6 +462,8 @@ export default function TowerDefenseGame() {
         return prevTowers.map(tower => {
           if (now - tower.lastFired < tower.fireRate) return tower;
           
+          const towerData = TOWER_TYPES[tower.type];
+          
           setEnemies(prevEnemies => {
             const enemiesInRange = prevEnemies.filter(enemy => {
               const dx = enemy.x - tower.x;
@@ -379,32 +471,51 @@ export default function TowerDefenseGame() {
               return Math.sqrt(dx * dx + dy * dy) <= tower.range;
             });
             
-            if (enemiesInRange.length > 0) {
-              const target = enemiesInRange[0];
-              return prevEnemies.map(e => {
-                if (e.id === target.id) {
-                  const effectiveDamage = Math.max(tower.damage - e.armor, 5);
-                  const newHealth = e.health - effectiveDamage;
-                  if (newHealth <= 0) {
-                    setGold(prev => prev + e.reward);
-                    setXpEarned(prev => prev + 5);
-                    setKillCount(prev => prev + 1);
-                    setTotalKills(prev => {
-                      const newTotal = prev + 1;
-                      // Show tip every 3 kills
-                      if (newTotal % 3 === 0) {
-                        const tip = MANTLE_KILL_TIPS[Math.floor(Math.random() * MANTLE_KILL_TIPS.length)];
-                        showMantleTip(tip);
-                      }
-                      return newTotal;
-                    });
-                  }
-                  return { ...e, health: newHealth };
+            if (enemiesInRange.length === 0) return prevEnemies;
+            
+            // Sort by distance for targeting
+            enemiesInRange.sort((a, b) => {
+              const distA = Math.sqrt((a.x - tower.x) ** 2 + (a.y - tower.y) ** 2);
+              const distB = Math.sqrt((b.x - tower.x) ** 2 + (b.y - tower.y) ** 2);
+              return distA - distB;
+            });
+            
+            const targets = tower.type === 'tesla' ? enemiesInRange.slice(0, 3) : [enemiesInRange[0]];
+            
+            return prevEnemies.map(enemy => {
+              if (!targets.find(t => t.id === enemy.id)) {
+                // Frost tower slows all in range
+                if (tower.type === 'frost' && enemiesInRange.find(e => e.id === enemy.id)) {
+                  return { ...enemy, slowed: true };
                 }
-                return e;
-              }).filter(e => e.health > 0);
-            }
-            return prevEnemies;
+                return enemy;
+              }
+              
+              // Calculate damage (wizard ignores armor)
+              const armorReduction = tower.type === 'wizard' ? 0 : enemy.armor;
+              const effectiveDamage = Math.max(tower.damage - armorReduction, 5);
+              const newHealth = enemy.health - effectiveDamage;
+              
+              if (newHealth <= 0) {
+                setGold(prev => prev + enemy.reward);
+                setXpEarned(prev => prev + 8);
+                setKillCount(prev => prev + 1);
+                setTotalKills(prev => {
+                  const newTotal = prev + 1;
+                  if (newTotal % 5 === 0) {
+                    showContextualFact('kill');
+                  }
+                  return newTotal;
+                });
+                return { ...enemy, health: 0 };
+              }
+              
+              return { 
+                ...enemy, 
+                health: newHealth,
+                slowed: tower.type === 'frost' ? true : enemy.slowed,
+              };
+            }).filter(e => e.health > 0);
           });
           
           return { ...tower, lastFired: now };
@@ -421,7 +532,7 @@ export default function TowerDefenseGame() {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [isPlaying, gameOver, currentPath, showMantleTip]);
+  }, [isPlaying, gameOver, currentPath, showContextualFact]);
 
   // Check wave completion
   useEffect(() => {
@@ -429,16 +540,13 @@ export default function TowerDefenseGame() {
       if (wave >= currentMapData.waves) {
         handleVictory();
       } else {
-        // Show wave complete tip
-        const tip = MANTLE_WAVE_TIPS[Math.floor(Math.random() * MANTLE_WAVE_TIPS.length)];
-        showMantleTip(tip);
-        
+        showContextualFact('wave');
         setTimeout(() => {
           setWave(prev => prev + 1);
-        }, 2000);
+        }, 2500);
       }
     }
-  }, [enemies, isPlaying, wave, currentMapData.waves, showMantleTip]);
+  }, [enemies.length, isPlaying, wave, currentMapData.waves, showContextualFact]);
 
   // Spawn wave when wave number changes
   useEffect(() => {
@@ -452,7 +560,7 @@ export default function TowerDefenseGame() {
     setGameOver(true);
     setVictory(true);
     
-    const earnedXP = xpEarned + 150 + wave * 15;
+    const earnedXP = xpEarned + 200 + wave * 20;
     setXpEarned(earnedXP);
     
     // Unlock next map
@@ -462,9 +570,17 @@ export default function TowerDefenseGame() {
       const nextMap = mapKeys[currentIndex + 1];
       if (!unlockedMaps.includes(nextMap)) {
         setUnlockedMaps(prev => [...prev, nextMap]);
-        const discoveryTip = MANTLE_MAP_DISCOVERIES[Math.floor(Math.random() * MANTLE_MAP_DISCOVERIES.length)];
-        showMantleTip(discoveryTip);
+        showContextualFact('discovery');
+        toast.success(`New map unlocked: ${MAPS[nextMap].name}!`);
       }
+    }
+    
+    // Unlock new tower
+    const lockedTowers = (Object.keys(TOWER_TYPES) as TowerType[]).filter(t => !unlockedTowers.includes(t));
+    if (lockedTowers.length > 0 && wave >= 5) {
+      const newTower = lockedTowers[0];
+      setUnlockedTowers(prev => [...prev, newTower]);
+      toast.success(`New tower unlocked: ${TOWER_TYPES[newTower].name}!`);
     }
     
     // Save to database
@@ -505,8 +621,12 @@ export default function TowerDefenseGame() {
     }
   };
 
-  const placeTower = (x: number, y: number) => {
+  const placeTower = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!selectedTower || !placementMode) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     
     const towerData = TOWER_TYPES[selectedTower];
     if (gold < towerData.cost) {
@@ -514,13 +634,23 @@ export default function TowerDefenseGame() {
       return;
     }
     
-    // Check if too close to path
-    const minDistanceFromPath = 30;
+    // Check distance from path
+    const minDistanceFromPath = 35;
     for (const point of currentPath) {
       const dx = point.x - x;
       const dy = point.y - y;
       if (Math.sqrt(dx * dx + dy * dy) < minDistanceFromPath) {
         toast.error('Too close to the path!');
+        return;
+      }
+    }
+    
+    // Check distance from other towers
+    for (const tower of towers) {
+      const dx = tower.x - x;
+      const dy = tower.y - y;
+      if (Math.sqrt(dx * dx + dy * dy) < 50) {
+        toast.error('Too close to another tower!');
         return;
       }
     }
@@ -535,30 +665,27 @@ export default function TowerDefenseGame() {
       range: towerData.range,
       fireRate: towerData.fireRate,
       lastFired: 0,
+      kills: 0,
     };
     
     setTowers(prev => [...prev, newTower]);
     setGold(prev => prev - towerData.cost);
     setPlacementMode(false);
-    
-    // Show tower tip
-    const tips = MANTLE_TOWER_TIPS[selectedTower];
-    if (tips) {
-      showMantleTip(tips[Math.floor(Math.random() * tips.length)]);
-    }
+    showContextualFact('tower');
+    toast.success(`${towerData.name} placed!`);
   };
 
   const startGame = () => {
     setIsPlaying(true);
     setWave(1);
-    showMantleTip(currentMapData.mantleTip);
+    setMantleFact(getMantleFactByCategory('strategy'));
   };
 
   const resetGame = () => {
     setTowers([]);
     setEnemies([]);
-    setGold(250);
-    setLives(20);
+    setGold(300);
+    setLives(25);
     setWave(0);
     setIsPlaying(false);
     setGameOver(false);
@@ -566,166 +693,153 @@ export default function TowerDefenseGame() {
     setXpEarned(0);
     setKillCount(0);
     setTotalKills(0);
-    setMantleTip(null);
+    setMantleFact(getRandomMantleFact());
   };
 
-  const unlockTower = (towerType: keyof typeof TOWER_TYPES) => {
-    const cost = TOWER_TYPES[towerType].cost * 3;
-    if (gold >= cost) {
-      setGold(prev => prev - cost);
-      setUnlockedTowers(prev => [...prev, towerType]);
-      toast.success(`${TOWER_TYPES[towerType].name} unlocked!`);
+  const selectMap = (mapKey: string) => {
+    if (unlockedMaps.includes(mapKey)) {
+      setCurrentMap(mapKey);
+      resetGame();
+      setShowMapSelect(false);
     }
-  };
-
-  const getEnemyColor = (type: Enemy['type']) => {
-    const colors = {
-      goblin: 'bg-green-500',
-      orc: 'bg-emerald-700',
-      troll: 'bg-stone-600',
-      dragon: 'bg-red-600',
-      necromancer: 'bg-purple-700',
-    };
-    return colors[type];
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/30 bg-background/90 backdrop-blur-xl">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/30 bg-background/95 backdrop-blur-xl">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => navigate('/')}
             className="gap-2 text-foreground hover:bg-foreground/10"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Quests
+            Back
           </Button>
           
-          <h1 className="font-display text-xl font-bold text-foreground">TOWER DEFENSE</h1>
+          <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+            <Castle className="w-5 h-5" />
+            TOWER DEFENSE
+          </h1>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-foreground/10 rounded-lg text-sm">
               <Star className="w-4 h-4 text-foreground" />
-              <span className="text-sm font-medium text-foreground">{xpEarned} XP</span>
+              <span className="font-medium text-foreground">{xpEarned}</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="pt-24 pb-12 px-4">
+      <main className="pt-16 pb-6 px-3">
         <div className="max-w-7xl mx-auto">
-          {/* Mantle Tip Banner */}
-          <AnimatePresence mode="wait">
-            {mantleTip && (
-              <motion.div
-                key={mantleTip}
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 flex items-start gap-3"
-              >
-                <Lightbulb className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-foreground font-medium">{mantleTip}</p>
-                  <p className="text-xs text-foreground/50 mt-1">Learn more at docs.mantle.xyz</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Mantle Fact Banner - Always visible and rotating */}
+          <motion.div
+            key={mantleFact}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4 p-3 rounded-xl bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/30"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Lightbulb className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground font-medium leading-relaxed">{mantleFact}</p>
+                <p className="text-xs text-emerald-400/70 mt-1">📚 docs.mantle.xyz • Learn while you play!</p>
+              </div>
+            </div>
+          </motion.div>
 
-          <div className="grid lg:grid-cols-5 gap-6">
-            {/* Left Sidebar - Resources & Towers */}
-            <div className="lg:col-span-1 space-y-4">
-              {/* Resources */}
-              <div className="p-4 rounded-2xl bg-card border border-border">
-                <h3 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  RESOURCES
+          <div className="grid lg:grid-cols-6 gap-4">
+            {/* Left Panel - Resources & Towers */}
+            <div className="lg:col-span-1 space-y-3">
+              {/* Resources Panel */}
+              <div className="p-3 rounded-xl bg-card border border-border">
+                <h3 className="font-display text-xs font-bold text-foreground mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  Resources
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-foreground/5">
                     <div className="flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-red-500" />
-                      <span className="text-sm text-foreground/60">Lives</span>
+                      <Heart className="w-4 h-4 text-red-500" />
+                      <span className="text-xs text-foreground/70">Lives</span>
                     </div>
-                    <span className="text-lg font-bold text-foreground">{lives}</span>
+                    <span className="text-sm font-bold text-foreground">{lives}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-foreground/5">
                     <div className="flex items-center gap-2">
-                      <Coins className="w-5 h-5 text-yellow-500" />
-                      <span className="text-sm text-foreground/60">Gold</span>
+                      <Coins className="w-4 h-4 text-yellow-500" />
+                      <span className="text-xs text-foreground/70">Gold</span>
                     </div>
-                    <span className="text-lg font-bold text-foreground">{gold}</span>
+                    <span className="text-sm font-bold text-foreground">{gold}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-foreground/5">
                     <div className="flex items-center gap-2">
-                      <Sword className="w-5 h-5 text-red-400" />
-                      <span className="text-sm text-foreground/60">Kills</span>
+                      <Skull className="w-4 h-4 text-red-400" />
+                      <span className="text-xs text-foreground/70">Kills</span>
                     </div>
-                    <span className="text-lg font-bold text-foreground">{totalKills}</span>
+                    <span className="text-sm font-bold text-foreground">{totalKills}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                     <div className="flex items-center gap-2">
-                      <Castle className="w-5 h-5 text-foreground/50" />
-                      <span className="text-sm text-foreground/60">Wave</span>
+                      <Wind className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs text-foreground/70">Wave</span>
                     </div>
-                    <span className="text-lg font-bold text-foreground">{wave}/{currentMapData.waves}</span>
+                    <span className="text-sm font-bold text-emerald-400">{wave}/{currentMapData.waves}</span>
                   </div>
                 </div>
               </div>
 
               {/* Tower Selection */}
-              <div className="p-4 rounded-2xl bg-card border border-border">
-                <h3 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Target className="w-4 h-4" />
-                  TOWERS
+              <div className="p-3 rounded-xl bg-card border border-border">
+                <h3 className="font-display text-xs font-bold text-foreground mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5" />
+                  Towers
                 </h3>
-                <div className="space-y-2">
-                  {Object.entries(TOWER_TYPES).map(([key, tower]) => {
+                <div className="space-y-1.5">
+                  {(Object.entries(TOWER_TYPES) as [TowerType, typeof TOWER_TYPES[TowerType]][]).map(([key, tower]) => {
                     const isUnlocked = unlockedTowers.includes(key);
                     const TowerIcon = tower.icon;
+                    const canAfford = gold >= tower.cost;
+                    
                     return (
                       <div
                         key={key}
                         onClick={() => {
-                          if (isUnlocked) {
-                            setSelectedTower(key as keyof typeof TOWER_TYPES);
+                          if (isUnlocked && canAfford) {
+                            setSelectedTower(key);
                             setPlacementMode(true);
                           }
                         }}
                         className={`
-                          p-3 rounded-lg border transition-all cursor-pointer
-                          ${selectedTower === key && placementMode ? 'border-emerald-500 bg-emerald-500/10' : 'border-border'}
-                          ${!isUnlocked ? 'opacity-50' : 'hover:border-foreground/50'}
+                          p-2 rounded-lg border transition-all cursor-pointer
+                          ${selectedTower === key && placementMode ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/50' : 'border-border/50'}
+                          ${!isUnlocked || !canAfford ? 'opacity-40 cursor-not-allowed' : 'hover:border-foreground/30 hover:bg-foreground/5'}
                         `}
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${tower.color} flex items-center justify-center`}>
-                            <TowerIcon className="w-4 h-4 text-white" />
+                          <div className={`w-8 h-8 rounded-lg ${tower.bgColor} flex items-center justify-center shadow-lg`}>
+                            <TowerIcon className="w-4 h-4 text-white drop-shadow" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-foreground truncate">{tower.name}</span>
+                              <span className="text-xs font-semibold text-foreground truncate">{tower.name}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <span className="text-[10px] text-foreground/50">{tower.special}</span>
                               {isUnlocked ? (
-                                <span className="text-xs text-yellow-500 font-bold">{tower.cost}g</span>
+                                <span className={`text-xs font-bold ${canAfford ? 'text-yellow-500' : 'text-red-400'}`}>
+                                  {tower.cost}g
+                                </span>
                               ) : (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    unlockTower(key as keyof typeof TOWER_TYPES);
-                                  }}
-                                  className="h-5 px-1.5 text-xs"
-                                >
-                                  <Lock className="w-3 h-3 mr-1" />
-                                  {tower.cost * 3}g
-                                </Button>
+                                <Lock className="w-3 h-3 text-foreground/30" />
                               )}
                             </div>
-                            <p className="text-[10px] text-foreground/50 truncate">{tower.description}</p>
                           </div>
                         </div>
                       </div>
@@ -736,149 +850,206 @@ export default function TowerDefenseGame() {
             </div>
 
             {/* Main Game Board */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-4">
               <div 
-                className={`relative w-full h-[450px] rounded-2xl border-2 border-border overflow-hidden bg-gradient-to-br ${currentMapData.gradient}`}
-                onClick={(e) => {
-                  if (placementMode) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    placeTower(x, y);
-                  }
-                }}
+                className={`relative w-full h-[420px] rounded-2xl border-2 border-foreground/20 overflow-hidden bg-gradient-to-br ${currentMapData.bgGradient} shadow-2xl`}
+                onClick={placeTower}
+                style={{ cursor: placementMode ? 'crosshair' : 'default' }}
               >
-                {/* Decorative elements */}
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute top-10 left-10 w-16 h-16 bg-foreground/10 rounded-full blur-xl" />
-                  <div className="absolute bottom-20 right-20 w-24 h-24 bg-foreground/10 rounded-full blur-xl" />
-                  <div className="absolute top-1/2 left-1/3 w-20 h-20 bg-foreground/5 rounded-full blur-2xl" />
+                {/* Ambient lighting effects */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/5 to-transparent" />
+                  <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/30 to-transparent" />
                 </div>
                 
-                {/* Path visualization with glow */}
+                {/* Decorations */}
+                {currentMapData.decorations.map((dec, i) => (
+                  <div
+                    key={i}
+                    className="absolute text-2xl select-none pointer-events-none opacity-60"
+                    style={{ left: dec.x, top: dec.y }}
+                  >
+                    {dec.type}
+                  </div>
+                ))}
+                
+                {/* Path visualization - isometric style */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
                   <defs>
-                    <filter id="glow">
-                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                       <feMerge>
                         <feMergeNode in="coloredBlur"/>
                         <feMergeNode in="SourceGraphic"/>
                       </feMerge>
                     </filter>
+                    <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={currentMapData.glowColor} />
+                      <stop offset="50%" stopColor={currentMapData.pathColor} />
+                      <stop offset="100%" stopColor={currentMapData.glowColor} />
+                    </linearGradient>
                   </defs>
+                  {/* Outer glow */}
                   <polyline
                     points={currentPath.map(p => `${p.x},${p.y}`).join(' ')}
                     fill="none"
-                    stroke="rgba(139, 92, 42, 0.8)"
-                    strokeWidth="35"
+                    stroke={currentMapData.glowColor}
+                    strokeWidth="50"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#pathGlow)"
+                    opacity="0.5"
+                  />
+                  {/* Main path */}
+                  <polyline
+                    points={currentPath.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke={currentMapData.pathColor}
+                    strokeWidth="38"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
+                  {/* Path highlight */}
                   <polyline
-                    points={currentPath.map(p => `${p.x},${p.y}`).join(' ')}
+                    points={currentPath.map(p => `${p.x},${p.y - 2}`).join(' ')}
                     fill="none"
-                    stroke="rgba(194, 154, 108, 0.5)"
-                    strokeWidth="25"
+                    stroke="rgba(255,255,255,0.15)"
+                    strokeWidth="32"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    filter="url(#glow)"
                   />
                 </svg>
 
-                {/* Towers with enhanced visuals */}
+                {/* Towers with isometric 3D effect */}
                 {towers.map(tower => {
                   const towerData = TOWER_TYPES[tower.type];
                   const TowerIcon = towerData.icon;
                   return (
                     <motion.div
                       key={tower.id}
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      className={`absolute w-12 h-12 rounded-xl bg-gradient-to-br ${towerData.color} border-2 border-white/30 flex items-center justify-center shadow-lg`}
+                      initial={{ scale: 0, y: -50 }}
+                      animate={{ scale: 1, y: 0 }}
+                      className="absolute"
                       style={{ 
-                        left: tower.x - 24, 
-                        top: tower.y - 24,
+                        left: tower.x - 25, 
+                        top: tower.y - 35,
                       }}
                     >
-                      <TowerIcon className="w-6 h-6 text-white drop-shadow-lg" />
-                      {/* Range indicator on hover */}
+                      {/* Tower base shadow */}
                       <div 
-                        className="absolute rounded-full border-2 border-white/10 pointer-events-none opacity-30"
+                        className="absolute w-12 h-4 bg-black/40 rounded-full blur-sm"
+                        style={{ bottom: -8, left: 6 }}
+                      />
+                      {/* Tower structure */}
+                      <div className={`relative w-14 h-16 ${towerData.bgColor} rounded-t-xl rounded-b-lg border-2 border-white/20 flex flex-col items-center justify-center shadow-xl`}>
+                        {/* Tower roof */}
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-gradient-to-b from-white/20 to-transparent rounded-t-full" />
+                        {/* Tower icon */}
+                        <TowerIcon className="w-6 h-6 text-white drop-shadow-lg" />
+                        {/* Level badge */}
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-foreground/20 flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-foreground">{tower.level}</span>
+                        </div>
+                      </div>
+                      {/* Range indicator */}
+                      <div 
+                        className="absolute rounded-full border border-white/10 pointer-events-none"
                         style={{
                           width: tower.range * 2,
                           height: tower.range * 2,
-                          left: 24 - tower.range,
-                          top: 24 - tower.range,
+                          left: 28 - tower.range,
+                          top: 32 - tower.range,
+                          opacity: 0.2,
                         }}
                       />
                     </motion.div>
                   );
                 })}
 
-                {/* Enemies with variety */}
-                {enemies.map(enemy => (
-                  <motion.div
-                    key={enemy.id}
-                    className={`absolute w-10 h-10 rounded-full ${getEnemyColor(enemy.type)} border-2 border-white/50 flex items-center justify-center shadow-lg`}
-                    style={{ 
-                      left: enemy.x - 20, 
-                      top: enemy.y - 20,
-                    }}
-                  >
-                    <span className="text-lg">
-                      {enemy.type === 'goblin' && '👺'}
-                      {enemy.type === 'orc' && '👹'}
-                      {enemy.type === 'troll' && '🧌'}
-                      {enemy.type === 'dragon' && '🐉'}
-                      {enemy.type === 'necromancer' && '💀'}
-                    </span>
-                    {/* Health bar */}
-                    <div className="absolute -top-3 left-0 w-full h-1.5 bg-red-900 rounded-full overflow-hidden">
-                      <motion.div 
-                        className="h-full bg-gradient-to-r from-green-400 to-green-600"
-                        initial={{ width: '100%' }}
-                        animate={{ width: `${(enemy.health / enemy.maxHealth) * 100}%` }}
-                      />
-                    </div>
-                  </motion.div>
-                ))}
+                {/* Enemies */}
+                {enemies.map(enemy => {
+                  const enemyData = ENEMY_TYPES[enemy.type];
+                  return (
+                    <motion.div
+                      key={enemy.id}
+                      className="absolute pointer-events-none"
+                      animate={{ 
+                        left: enemy.x - 18, 
+                        top: enemy.y - 18,
+                      }}
+                      transition={{ duration: 0.05, ease: "linear" }}
+                    >
+                      {/* Enemy shadow */}
+                      <div className="absolute w-6 h-2 bg-black/40 rounded-full blur-sm" style={{ bottom: -4, left: 6 }} />
+                      {/* Enemy body */}
+                      <div className={`w-9 h-9 rounded-full ${enemyData.color} border-2 ${enemy.slowed ? 'border-cyan-400' : 'border-white/40'} flex items-center justify-center shadow-lg`}>
+                        <span className="text-lg select-none">{enemyData.emoji}</span>
+                      </div>
+                      {/* Health bar */}
+                      <div className="absolute -top-2 left-0 w-full h-1.5 bg-black/60 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-green-500 to-green-400"
+                          initial={{ width: '100%' }}
+                          animate={{ width: `${(enemy.health / enemy.maxHealth) * 100}%` }}
+                        />
+                      </div>
+                      {/* Slow indicator */}
+                      {enemy.slowed && (
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
+                          <Snowflake className="w-3 h-3 text-cyan-400 animate-pulse" />
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
 
                 {/* Placement overlay */}
                 {placementMode && (
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center cursor-crosshair"
+                    className="absolute inset-0 bg-emerald-500/5 flex items-center justify-center"
                   >
-                    <div className="px-4 py-2 bg-background/80 rounded-lg border border-emerald-500/50">
-                      <p className="text-foreground text-sm font-medium">Click to place {selectedTower && TOWER_TYPES[selectedTower].name}</p>
+                    <div className="px-4 py-2 bg-background/90 rounded-xl border border-emerald-500/50 shadow-lg">
+                      <p className="text-foreground text-sm font-medium flex items-center gap-2">
+                        <Target className="w-4 h-4 text-emerald-400" />
+                        Click to place {selectedTower && TOWER_TYPES[selectedTower].name}
+                      </p>
                     </div>
                   </motion.div>
                 )}
 
                 {/* Start overlay */}
                 {!isPlaying && !gameOver && wave === 0 && (
-                  <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center">
-                      <Castle className="w-16 h-16 text-foreground mx-auto mb-4" />
-                      <h3 className="font-display text-2xl font-bold text-foreground mb-2">{currentMapData.name}</h3>
-                      <p className="text-foreground/60 mb-4">{currentMapData.description}</p>
+                  <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center">
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-center p-8"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center shadow-2xl">
+                        <Castle className="w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="font-display text-3xl font-bold text-foreground mb-2">{currentMapData.name}</h3>
+                      <p className="text-foreground/60 mb-1">{currentMapData.description}</p>
+                      <p className="text-sm text-emerald-400 mb-6">{currentMapData.waves} waves • {currentMapData.theme} theme</p>
                       <Button
                         onClick={startGame}
-                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        size="lg"
+                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
                       >
                         <Play className="w-5 h-5" />
                         Start Battle
                       </Button>
-                    </div>
+                    </motion.div>
                   </div>
                 )}
               </div>
 
               {/* Game Controls */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-3 flex items-center justify-between">
                 <div className="flex gap-2">
-                  {isPlaying && (
+                  {isPlaying ? (
                     <Button
                       onClick={() => setIsPlaying(false)}
                       variant="outline"
@@ -888,8 +1059,7 @@ export default function TowerDefenseGame() {
                       <Pause className="w-4 h-4" />
                       Pause
                     </Button>
-                  )}
-                  {!isPlaying && wave > 0 && !gameOver && (
+                  ) : wave > 0 && !gameOver ? (
                     <Button
                       onClick={() => setIsPlaying(true)}
                       size="sm"
@@ -898,7 +1068,7 @@ export default function TowerDefenseGame() {
                       <Play className="w-4 h-4" />
                       Resume
                     </Button>
-                  )}
+                  ) : null}
                   <Button
                     onClick={resetGame}
                     variant="outline"
@@ -910,125 +1080,187 @@ export default function TowerDefenseGame() {
                   </Button>
                 </div>
                 <Button
-                  onClick={() => setShowTutorial(true)}
+                  onClick={() => setShowMapSelect(true)}
                   variant="outline"
                   size="sm"
                   className="gap-2 border-border text-foreground"
                 >
-                  <BookOpen className="w-4 h-4" />
-                  Tutorial
+                  <Map className="w-4 h-4" />
+                  Maps
                 </Button>
               </div>
             </div>
 
-            {/* Right Sidebar - Maps & Learning */}
-            <div className="lg:col-span-1 space-y-4">
-              {/* Map Selection */}
-              <div className="p-4 rounded-2xl bg-card border border-border">
-                <h3 className="font-display text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Map className="w-4 h-4" />
-                  REGIONS
+            {/* Right Panel - Map & Info */}
+            <div className="lg:col-span-1 space-y-3">
+              {/* Current Map */}
+              <div className="p-3 rounded-xl bg-card border border-border">
+                <h3 className="font-display text-xs font-bold text-foreground mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                  <Map className="w-3.5 h-3.5" />
+                  Current Map
                 </h3>
-                <div className="space-y-2">
-                  {Object.entries(MAPS).map(([key, map]) => {
-                    const isUnlocked = unlockedMaps.includes(key);
-                    return (
-                      <Button
-                        key={key}
-                        variant={currentMap === key ? 'default' : 'outline'}
-                        size="sm"
-                        disabled={!isUnlocked}
-                        onClick={() => {
-                          setCurrentMap(key as keyof typeof MAPS);
-                          resetGame();
-                        }}
-                        className={`w-full justify-start gap-2 ${
-                          currentMap === key 
-                            ? 'bg-emerald-600 text-white' 
-                            : 'border-border text-foreground'
-                        }`}
-                      >
-                        {!isUnlocked && <Lock className="w-3 h-3" />}
-                        <Compass className="w-3 h-3" />
-                        {map.name}
-                      </Button>
-                    );
-                  })}
+                <div className={`p-3 rounded-lg bg-gradient-to-br ${currentMapData.bgGradient} border border-foreground/10`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mountain className="w-4 h-4 text-white/80" />
+                    <span className="text-sm font-bold text-white">{currentMapData.name}</span>
+                  </div>
+                  <p className="text-[10px] text-white/60 leading-relaxed">{currentMapData.description}</p>
                 </div>
               </div>
 
-              {/* Mantle Learning Progress */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-900/20 to-teal-900/20 border border-emerald-500/20">
-                <h3 className="font-display text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-emerald-400" />
-                  📚 MANTLE LEARNING
+              {/* Enemy Types */}
+              <div className="p-3 rounded-xl bg-card border border-border">
+                <h3 className="font-display text-xs font-bold text-foreground mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                  <Skull className="w-3.5 h-3.5" />
+                  Enemies
                 </h3>
-                <p className="text-xs text-foreground/60 mb-3">Every action teaches you about Mantle!</p>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between text-foreground/80">
-                    <span>Towers built</span>
-                    <span className="font-bold">{towers.length}</span>
-                  </div>
-                  <div className="flex justify-between text-foreground/80">
-                    <span>Enemies defeated</span>
-                    <span className="font-bold">{totalKills}</span>
-                  </div>
-                  <div className="flex justify-between text-foreground/80">
-                    <span>Waves survived</span>
-                    <span className="font-bold">{Math.max(0, wave - 1)}</span>
-                  </div>
-                  <div className="flex justify-between text-foreground/80">
-                    <span>Maps explored</span>
-                    <span className="font-bold">{unlockedMaps.length}/{Object.keys(MAPS).length}</span>
-                  </div>
-                  <div className="pt-2 border-t border-foreground/10">
-                    <div className="flex justify-between text-emerald-400">
-                      <span>Tips learned</span>
-                      <span className="font-bold">{towers.length + Math.floor(totalKills / 3) + Math.max(0, wave - 1)}</span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(Object.entries(ENEMY_TYPES) as [EnemyType, typeof ENEMY_TYPES[EnemyType]][]).map(([key, enemy]) => (
+                    <div 
+                      key={key}
+                      className={`aspect-square rounded-lg ${enemy.color} flex items-center justify-center text-lg`}
+                      title={`${key}: ${enemy.health}HP, ${enemy.armor}ARM`}
+                    >
+                      {enemy.emoji}
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mantle Learning */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-900/30 to-teal-900/30 border border-emerald-500/20">
+                <h3 className="font-display text-xs font-bold text-emerald-400 mb-2 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5" />
+                  Mantle Learning
+                </h3>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between text-foreground/70">
+                    <span>Facts Learned</span>
+                    <span className="font-bold text-emerald-400">{Math.floor(totalKills / 5) + wave}</span>
+                  </div>
+                  <div className="flex justify-between text-foreground/70">
+                    <span>Strategy Level</span>
+                    <span className="font-bold text-emerald-400">{Math.floor(totalKills / 10) + 1}</span>
                   </div>
                 </div>
+                <p className="text-[10px] text-foreground/50 mt-2">Every action teaches you about Mantle Network!</p>
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Victory/Defeat Modal */}
+      {/* Map Selection Modal */}
+      <AnimatePresence>
+        {showMapSelect && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+            onClick={() => setShowMapSelect(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border rounded-2xl p-6 max-w-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="font-display text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+                <Map className="w-6 h-6" />
+                Select Map
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(MAPS).map(([key, map]) => {
+                  const isUnlocked = unlockedMaps.includes(key);
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => isUnlocked && selectMap(key)}
+                      className={`
+                        p-4 rounded-xl border-2 transition-all cursor-pointer
+                        ${currentMap === key ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-border'}
+                        ${!isUnlocked ? 'opacity-50 cursor-not-allowed' : 'hover:border-foreground/50'}
+                        bg-gradient-to-br ${map.bgGradient}
+                      `}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-display font-bold text-white">{map.name}</span>
+                        {!isUnlocked && <Lock className="w-4 h-4 text-white/50" />}
+                      </div>
+                      <p className="text-xs text-white/60 mb-2">{map.description}</p>
+                      <div className="flex items-center gap-2 text-xs text-white/80">
+                        <span>{map.waves} waves</span>
+                        <span>•</span>
+                        <span className="capitalize">{map.theme}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <Button
+                onClick={() => setShowMapSelect(false)}
+                className="w-full mt-6 bg-foreground text-background hover:bg-foreground/90"
+              >
+                Close
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Game Over Modal */}
       <AnimatePresence>
         {gameOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl p-8 max-w-md w-full mx-4 text-center"
+              className="bg-card border border-border rounded-2xl p-8 max-w-md w-full text-center"
             >
               {victory ? (
                 <>
-                  <Trophy className="w-20 h-20 text-yellow-500 mx-auto mb-4" />
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-2xl">
+                    <Trophy className="w-10 h-10 text-white" />
+                  </div>
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">VICTORY!</h2>
-                  <p className="text-foreground/60 mb-2">The realm is safe!</p>
+                  <p className="text-foreground/60 mb-2">The kingdom is saved!</p>
                   <p className="text-sm text-emerald-400 mb-4">
-                    🎓 You've learned {towers.length + Math.floor(totalKills / 3) + wave} facts about Mantle!
+                    🎓 You learned {Math.floor(totalKills / 5) + wave} facts about Mantle!
                   </p>
                 </>
               ) : (
                 <>
-                  <Castle className="w-20 h-20 text-foreground/50 mx-auto mb-4" />
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-2xl">
+                    <Skull className="w-10 h-10 text-white" />
+                  </div>
                   <h2 className="font-display text-3xl font-bold text-foreground mb-2">DEFEAT</h2>
-                  <p className="text-foreground/60 mb-4">The castle has fallen...</p>
+                  <p className="text-foreground/60 mb-4">The enemies have breached the walls...</p>
                 </>
               )}
               
-              <div className="flex items-center justify-center gap-2 my-6 px-4 py-3 bg-foreground/10 rounded-lg">
-                <Zap className="w-5 h-5 text-foreground" />
-                <span className="font-bold text-foreground">+{xpEarned} XP Earned</span>
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="p-3 rounded-lg bg-foreground/5">
+                  <p className="text-2xl font-bold text-foreground">{wave}</p>
+                  <p className="text-xs text-foreground/60">Waves</p>
+                </div>
+                <div className="p-3 rounded-lg bg-foreground/5">
+                  <p className="text-2xl font-bold text-foreground">{totalKills}</p>
+                  <p className="text-xs text-foreground/60">Kills</p>
+                </div>
+                <div className="p-3 rounded-lg bg-emerald-500/10">
+                  <p className="text-2xl font-bold text-emerald-400">+{xpEarned}</p>
+                  <p className="text-xs text-foreground/60">XP</p>
+                </div>
               </div>
               
               <div className="flex gap-3">
@@ -1037,76 +1269,15 @@ export default function TowerDefenseGame() {
                   variant="outline"
                   className="flex-1 border-border text-foreground hover:bg-foreground/10"
                 >
-                  View Journey
+                  Journey
                 </Button>
                 <Button
                   onClick={resetGame}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="flex-1 bg-foreground text-background hover:bg-foreground/90"
                 >
                   Play Again
                 </Button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tutorial Modal */}
-      <AnimatePresence>
-        {showTutorial && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-            onClick={() => setShowTutorial(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl p-8 max-w-lg w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="font-display text-2xl font-bold text-foreground mb-6">🏰 Tower Defense Guide</h2>
-              
-              <div className="space-y-4 text-sm text-foreground/80">
-                <p><strong className="text-foreground">🎯 Objective:</strong> Defend your castle by preventing enemies from reaching the end!</p>
-                
-                <div>
-                  <strong className="text-foreground">⚔️ How to Play:</strong>
-                  <ul className="list-disc list-inside space-y-1 mt-1">
-                    <li>Select a tower from the left sidebar</li>
-                    <li>Click on the battlefield to place it (not on path)</li>
-                    <li>Towers automatically attack enemies in range</li>
-                    <li>Defeat enemies to earn gold and XP</li>
-                    <li>Unlock new towers and maps with gold</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <strong className="text-foreground">🏆 XP Rewards:</strong>
-                  <ul className="list-disc list-inside space-y-1 mt-1">
-                    <li>5 XP per enemy defeated</li>
-                    <li>150 XP bonus for victory</li>
-                    <li>15 XP per wave completed</li>
-                  </ul>
-                </div>
-                
-                <div className="p-3 bg-emerald-900/20 rounded-lg border border-emerald-500/20">
-                  <p className="text-emerald-400 font-semibold">📚 Learn While You Defend!</p>
-                  <p className="text-foreground/60 text-xs mt-1">
-                    Every tower placed, enemy defeated, and map explored teaches you about Mantle Network!
-                  </p>
-                </div>
-              </div>
-              
-              <Button
-                onClick={() => setShowTutorial(false)}
-                className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                Start Defending!
-              </Button>
             </motion.div>
           </motion.div>
         )}
